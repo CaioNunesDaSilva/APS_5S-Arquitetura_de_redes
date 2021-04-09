@@ -1,12 +1,18 @@
 from abc import ABC
 from abc import abstractmethod
 from tkinter import *
+from tkinter.messagebox import showinfo
 
+from db import debug_cadastrar
+from db import debug_login
+from constantes import SOCKET_ENDERECO
+from constantes import SOCKET_PORTA
 from constantes import COR_DE_FUNDO_PADRAO
-from constantes import LOGO_TELA_DE_LOGIN
-from constantes import LOGIN_FONTE_LABEL
-from constantes import LOGIN_FONTE_ENTRY
-from constantes import LOGIN_FONTE_BTN
+from constantes import LOGO_CAMINHO
+from constantes import FONTE_LABEL_LOGIN
+from constantes import FONTE_ENTRY_LOGIN
+from constantes import FONTE_BTN_LOGIN
+from constantes import FONTE_BTN_MENU
 
 
 class Interface(ABC):
@@ -62,7 +68,7 @@ class Login(Interface):
             self.main_frame = Frame(self._tk, bg=COR_DE_FUNDO_PADRAO)
             self.main_frame.pack(fill=BOTH, expand=True)
 
-            self.logo_img = PhotoImage(file=LOGO_TELA_DE_LOGIN)
+            self.logo_img = PhotoImage(file=LOGO_CAMINHO)
             self.frame_logo = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=10, pady=5)
             self.label_logo = Label(self.frame_logo, image=self.logo_img, borderwidth=0)
 
@@ -70,10 +76,10 @@ class Login(Interface):
             self.label_logo.pack()
 
             self.frame_entry = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
-            self.label_name = Label(self.frame_entry, text="Nome", bg=COR_DE_FUNDO_PADRAO, font=LOGIN_FONTE_LABEL)
-            self.entry_name = Entry(self.frame_entry, borderwidth=2, width=18, font=LOGIN_FONTE_ENTRY)
-            self.label_pswd = Label(self.frame_entry, text="Senha", bg=COR_DE_FUNDO_PADRAO, font=LOGIN_FONTE_LABEL)
-            self.entry_pswd = Entry(self.frame_entry, borderwidth=2, width=18, show="*", font=LOGIN_FONTE_ENTRY)
+            self.label_name = Label(self.frame_entry, text="Nome", bg=COR_DE_FUNDO_PADRAO, font=FONTE_LABEL_LOGIN)
+            self.entry_name = Entry(self.frame_entry, borderwidth=2, width=18, font=FONTE_ENTRY_LOGIN)
+            self.label_pswd = Label(self.frame_entry, text="Senha", bg=COR_DE_FUNDO_PADRAO, font=FONTE_LABEL_LOGIN)
+            self.entry_pswd = Entry(self.frame_entry, borderwidth=2, width=18, show="*", font=FONTE_ENTRY_LOGIN)
 
             self.frame_entry.grid_rowconfigure(1, minsize=60)
             self.frame_entry.grid_rowconfigure(3, minsize=60)
@@ -86,10 +92,11 @@ class Login(Interface):
             self.label_pswd.grid(row=2, column=0, sticky=W)
             self.entry_pswd.grid(row=3, column=0, sticky=W + N)
 
-            # TODO Botoes de acao
             self.frame_btn = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
-            self.btn_logon = Button(self.frame_btn, text="ENTRAR", padx=5, pady=2, font=LOGIN_FONTE_BTN,)#command=self.user_logon
-            self.btn_n_usr = Button(self.frame_btn, text="NOVO", padx=5, pady=2, font=LOGIN_FONTE_BTN, command=self.acao_btn_n_usr)
+            self.btn_logon = Button(self.frame_btn, text="ENTRAR", padx=5, pady=2, font=FONTE_BTN_LOGIN,
+                                    command=self.acao_btn_logon)
+            self.btn_n_usr = Button(self.frame_btn, text="NOVO", padx=5, pady=2, font=FONTE_BTN_LOGIN,
+                                    command=self.acao_btn_n_usr)
 
             self.frame_btn.grid_columnconfigure(1, minsize=40)
 
@@ -112,6 +119,19 @@ class Login(Interface):
             print("Modulo: interface\nClasse: Login\nMetodo: acao_btn_n_usr")
             print(erro)
 
+    def acao_btn_logon(self):
+        try:
+            # TODO placeholder function
+            dados_cliente = debug_login(self.entry_name.get().strip(), self.entry_pswd.get().strip())
+            # TODO dados_cliente.soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
+            self.main_frame.destroy()
+            MenuPrincipal(self._tk, dados_cliente)
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: interface\nClasse: Login\nMetodo: acao_btn_logon")
+            print(erro)
+
 
 class Cadastro(Interface):
     def _init_tela(self):
@@ -120,7 +140,7 @@ class Cadastro(Interface):
             self.main_frame = Frame(self._tk, bg=COR_DE_FUNDO_PADRAO)
             self.main_frame.pack(fill=BOTH, expand=True)
 
-            self.logo_img   = PhotoImage(file=LOGO_TELA_DE_LOGIN)
+            self.logo_img = PhotoImage(file=LOGO_CAMINHO)
             self.frame_logo = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=10, pady=5)
             self.label_logo = Label(self.frame_logo, image=self.logo_img, borderwidth=0)
 
@@ -128,12 +148,12 @@ class Cadastro(Interface):
             self.label_logo.pack()
 
             self.frame_entry = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
-            self.label_name = Label(self.frame_entry, text="Nome", bg=COR_DE_FUNDO_PADRAO, font=LOGIN_FONTE_LABEL)
-            self.entry_name = Entry(self.frame_entry, borderwidth=2, width=18, font=LOGIN_FONTE_ENTRY)
-            self.label_pswd = Label(self.frame_entry, text="Senha", bg=COR_DE_FUNDO_PADRAO, font=LOGIN_FONTE_LABEL)
-            self.entry_pswd = Entry(self.frame_entry, borderwidth=2, width=18, show="*", font=LOGIN_FONTE_ENTRY)
-            self.label_cpwd = Label(self.frame_entry, text="Confirmação", bg=COR_DE_FUNDO_PADRAO, font=LOGIN_FONTE_LABEL)
-            self.entry_cpwd = Entry(self.frame_entry, borderwidth=2, width=18, show="*", font=LOGIN_FONTE_ENTRY)
+            self.label_name = Label(self.frame_entry, text="Nome", bg=COR_DE_FUNDO_PADRAO, font=FONTE_LABEL_LOGIN)
+            self.entry_name = Entry(self.frame_entry, borderwidth=2, width=18, font=FONTE_ENTRY_LOGIN)
+            self.label_pswd = Label(self.frame_entry, text="Senha", bg=COR_DE_FUNDO_PADRAO, font=FONTE_LABEL_LOGIN)
+            self.entry_pswd = Entry(self.frame_entry, borderwidth=2, width=18, show="*", font=FONTE_ENTRY_LOGIN)
+            self.label_cpwd = Label(self.frame_entry, text="Confirmação", bg=COR_DE_FUNDO_PADRAO, font=FONTE_LABEL_LOGIN)
+            self.entry_cpwd = Entry(self.frame_entry, borderwidth=2, width=18, show="*", font=FONTE_ENTRY_LOGIN)
 
             self.frame_entry.grid_rowconfigure(1, minsize=50)
             self.frame_entry.grid_rowconfigure(3, minsize=50)
@@ -147,10 +167,11 @@ class Cadastro(Interface):
             self.label_cpwd.grid(row=4, column=0, sticky=W)
             self.entry_cpwd.grid(row=5, column=0, sticky=W+N)
 
-            # TODO Botoes de acao
             self.frame_btn = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
-            self.btn_n_usr = Button(self.frame_btn, text="CADASTRAR", padx=5, pady=2, font=LOGIN_FONTE_BTN, )#command=self.__user_register
-            self.btn_back = Button(self.frame_btn, text="VOLTAR", padx=5, pady=2, font=LOGIN_FONTE_BTN, command=self.acao_btn_back)
+            self.btn_n_usr = Button(self.frame_btn, text="CADASTRAR", padx=5, pady=2, font=FONTE_BTN_LOGIN,
+                                    command=self.acao_btn_n_usr)
+            self.btn_back = Button(self.frame_btn, text="VOLTAR", padx=5, pady=2, font=FONTE_BTN_LOGIN,
+                                   command=self.acao_btn_back)
 
             self.frame_btn.grid_columnconfigure(1, minsize=10)
 
@@ -171,4 +192,75 @@ class Cadastro(Interface):
         # TODO too broad exception clause
         except Exception as erro:
             print("Modulo: interface\nClasse: Cadastro\nMetodo: acao_btn_back")
+            print(erro)
+
+    def acao_btn_n_usr(self):
+        try:
+            # TODO placeholder function
+            if debug_cadastrar(self.entry_name.get().strip(), self.entry_pswd.get().strip()):
+                showinfo(title="AVISO", message="Usuário cadastrado com sucesso.")
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: interface\nClasse: Cadastro\nMetodo: acao_btn_n_usr")
+            print(erro)
+
+
+class MenuPrincipal(Interface):
+    def __init__(self, tk, dados_cliente):
+        try:
+            self._dados_cliente = dados_cliente
+            super().__init__(tk)
+
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: interface\nClasse: MenuPrincipal\nMetodo: __inti__")
+            print(erro)
+
+    def _init_tela(self):
+        try:
+            self._mudar_titulo("MENU")
+            self.main_frame = Frame(self._tk, bg=COR_DE_FUNDO_PADRAO)
+            self.main_frame.pack(fill=BOTH, expand=True)
+
+            self.logo_img = PhotoImage(file=LOGO_CAMINHO)
+            self.frame_logo = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=10, pady=5)
+            self.label_logo = Label(self.frame_logo, image=self.logo_img, borderwidth=0)
+
+            self.frame_logo.pack()
+            self.label_logo.pack()
+
+            self.frame_botoes = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
+            self.frame_botoes.pack(fill=BOTH, expand=True)
+
+            self.btn_users = Button(self.frame_botoes, text="USUARIOS ONLINE", font=FONTE_BTN_MENU, width=15, padx=10, pady=5,
+                                    command=self.acao_btn_users)
+            self.btn_users.grid(row=0, column=0, pady=3)
+            self.btn_groups = Button(self.frame_botoes, text="GRUPOS", font=FONTE_BTN_MENU, width=15, padx=10, pady=5,
+                                     command=self.acao_btn_groups)
+            self.btn_groups.grid(row=1, column=0, pady=3)
+            self.btn_exit = Button(self.frame_botoes, text="SAIR", font=FONTE_BTN_MENU, width=15, padx=10, pady=5,
+                                   command=self.acao_btn_exit)
+            self.btn_exit.grid(row=2, column=0, pady=3)
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: interface\nClasse: MenuPrincipal\nMetodo: _init_tela")
+            print(erro)
+
+    def acao_btn_users(self):
+        pass
+
+    def acao_btn_groups(self):
+        pass
+
+    def acao_btn_exit(self):
+        try:
+            self.main_frame.destroy()
+            Login(self._tk)
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: interface\nClasse: MenuPrincipal\nMetodo: acao_btn_exit")
             print(erro)

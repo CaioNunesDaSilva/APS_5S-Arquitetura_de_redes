@@ -1,3 +1,46 @@
+class DadosCliente:
+    def __init__(self, nome: str, senha: str, soquete):
+        try:
+            self._nome = nome
+            self._senha = senha
+            self._soquete = soquete
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: auxiliar\nClasse: DadosCliente\nMetodo: __init__")
+            print(erro)
+
+    @property
+    def nome(self):
+        try:
+            return self._nome
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: auxiliar\nClasse: DadosCliente\nMetodo: nome")
+            print(erro)
+
+    @property
+    def senha(self):
+        try:
+            return self._senha
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: auxiliar\nClasse: DadosCliente\nMetodo: senha")
+            print(erro)
+
+    @property
+    def soquete(self):
+        try:
+            return self._soquete
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: auxiliar\nClasse: DadosCliente\nMetodo: soquete")
+            print(erro)
+
+
 class Entidade:
     def __init__(self, codigo: int, nome: str):
         try:
@@ -94,6 +137,7 @@ class Grupo(Entidade):
         except Exception as erro:
             print("Modulo: auxiliar\nClasse: Grupo\nMetodo: membros")
             print(erro)
+
 
 class Pedido:
     def __init__(self, nome: str, senha: str):

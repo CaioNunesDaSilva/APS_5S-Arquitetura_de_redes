@@ -1,13 +1,13 @@
 import mysql.connector as MySQL
 
+from auxiliar import DadosCliente
 from constantes import BANCO_DE_DADOS_ENDERECO
 from constantes import BANCO_DE_DADOS_NOME
 from constantes import BANCO_DE_DADOS_USUARIO
 from constantes import BANCO_DE_DADOS_SENHA
 
 
-def conectar(host=BANCO_DE_DADOS_ENDERECO, database=BANCO_DE_DADOS_NOME, user=BANCO_DE_DADOS_USUARIO,
-             password=BANCO_DE_DADOS_SENHA):
+def __conectar(host, database, user, password):
     try:
         conexao = MySQL.connect(host=host, database=database, user=user, password=password)
         if conexao.is_connected():
@@ -22,7 +22,7 @@ def conectar(host=BANCO_DE_DADOS_ENDERECO, database=BANCO_DE_DADOS_NOME, user=BA
         print(erro)
 
 
-def select(conexao, campos: str, tabela: str, condicao=None):
+def __select(conexao, campos: str, tabela: str, condicao=None):
     try:
         cursor = conexao.cursor()
         if condicao:
@@ -37,7 +37,7 @@ def select(conexao, campos: str, tabela: str, condicao=None):
         print(erro)
 
 
-def insert(conexao, tabela_campos, valores):
+def __insert(conexao, tabela_campos, valores):
     try:
         cursor = conexao.cursor()
         cursor.execute(f"INSERT INTO {tabela_campos} VALUES {valores};")
@@ -49,7 +49,7 @@ def insert(conexao, tabela_campos, valores):
         print(erro)
 
 
-def delete(conexao, tabela, condicao):
+def __delete(conexao, tabela, condicao):
     try:
         cursor = conexao.cursor()
         cursor.execute(f"DELETE FROM {tabela} WHERE {condicao};")
@@ -61,7 +61,7 @@ def delete(conexao, tabela, condicao):
         print(erro)
 
 
-def desconectar(conexao, cursor=None):
+def __desconectar(conexao, cursor=None):
     try:
         if cursor:
             cursor.close()
@@ -71,3 +71,13 @@ def desconectar(conexao, cursor=None):
     except Exception as erro:
         print("Modulo: db\nFuncao: desconectar")
         print(erro)
+
+
+# TODO placeholder function
+def debug_cadastrar(nome: str, senha: str):
+    return True
+
+
+# TODO placeholder function
+def debug_login(nome: str, senha: str):
+    return DadosCliente("USER", "PASS", None)
