@@ -2,17 +2,15 @@ from abc import ABC
 from abc import abstractmethod
 from tkinter import *
 from tkinter.messagebox import showinfo
+from tkinter.messagebox import showerror
+from socket import socket
+from socket import AF_INET
+from socket import SOCK_STREAM
+from json import dumps
+from json import loads
 
-from db import debug_cadastrar
 from db import debug_login
-from constantes import SOCKET_ENDERECO
-from constantes import SOCKET_PORTA
-from constantes import COR_DE_FUNDO_PADRAO
-from constantes import LOGO_CAMINHO
-from constantes import FONTE_LABEL_LOGIN
-from constantes import FONTE_ENTRY_LOGIN
-from constantes import FONTE_BTN_LOGIN
-from constantes import FONTE_BTN_MENU
+from constantes import *
 
 
 class Interface(ABC):
@@ -152,8 +150,6 @@ class Cadastro(Interface):
             self.entry_name = Entry(self.frame_entry, borderwidth=2, width=18, font=FONTE_ENTRY_LOGIN)
             self.label_pswd = Label(self.frame_entry, text="Senha", bg=COR_DE_FUNDO_PADRAO, font=FONTE_LABEL_LOGIN)
             self.entry_pswd = Entry(self.frame_entry, borderwidth=2, width=18, show="*", font=FONTE_ENTRY_LOGIN)
-            self.label_cpwd = Label(self.frame_entry, text="Confirmação", bg=COR_DE_FUNDO_PADRAO, font=FONTE_LABEL_LOGIN)
-            self.entry_cpwd = Entry(self.frame_entry, borderwidth=2, width=18, show="*", font=FONTE_ENTRY_LOGIN)
 
             self.frame_entry.grid_rowconfigure(1, minsize=50)
             self.frame_entry.grid_rowconfigure(3, minsize=50)
@@ -164,8 +160,6 @@ class Cadastro(Interface):
             self.entry_name.grid(row=1, column=0, sticky=W+N)
             self.label_pswd.grid(row=2, column=0, sticky=W)
             self.entry_pswd.grid(row=3, column=0, sticky=W+N)
-            self.label_cpwd.grid(row=4, column=0, sticky=W)
-            self.entry_cpwd.grid(row=5, column=0, sticky=W+N)
 
             self.frame_btn = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
             self.btn_n_usr = Button(self.frame_btn, text="CADASTRAR", padx=5, pady=2, font=FONTE_BTN_LOGIN,
@@ -196,9 +190,22 @@ class Cadastro(Interface):
 
     def acao_btn_n_usr(self):
         try:
-            # TODO placeholder function
-            if debug_cadastrar(self.entry_name.get().strip(), self.entry_pswd.get().strip()):
-                showinfo(title="AVISO", message="Usuário cadastrado com sucesso.")
+            pedido_cadastro = {"tipo": 0, "nome": str(self.entry_name.get()).strip(),
+                               "senha": str(self.entry_pswd.get()).strip()}
+            pedido_cadastro = dumps(pedido_cadastro)
+
+            soquete = socket(AF_INET, SOCK_STREAM)
+            soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
+            soquete.send(pedido_cadastro.encode())
+            resultado = soquete.recv(BUFFER).decode()
+            resultado = loads(resultado)
+
+            if resultado:
+                showinfo(title="AVISO", message="Usuario cadastrado com sucesso")
+            else:
+                showerror(title="ERRO", message="Nao foi possivel cadastrar o usuario")
+
+            soquete.close()
 
         # TODO too broad exception clause
         except Exception as erro:
@@ -211,7 +218,6 @@ class MenuPrincipal(Interface):
         try:
             self._dados_cliente = dados_cliente
             super().__init__(tk)
-
 
         # TODO too broad exception clause
         except Exception as erro:

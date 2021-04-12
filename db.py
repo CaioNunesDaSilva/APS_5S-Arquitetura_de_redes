@@ -75,9 +75,11 @@ def __desconectar(conexao, cursor=None):
 
 # TODO placeholder function
 def debug_cadastrar(nome: str, senha: str):
+    print(nome, senha)
     return True
 
 
 # TODO placeholder function
 def debug_login(nome: str, senha: str):
+    print(nome, senha)
     return DadosCliente("USER", "PASS", None)
