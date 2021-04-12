@@ -82,4 +82,5 @@ def debug_cadastrar(nome: str, senha: str):
 # TODO placeholder function
 def debug_login(nome: str, senha: str):
     print(nome, senha)
-    return DadosCliente("USER", "PASS", None)
+    dados_cliente = {"resultado": True, "codigo": 1111, "nome": "Usuario", "senha": 1234}
+    return dados_cliente

@@ -9,7 +9,7 @@ from socket import SOCK_STREAM
 from json import dumps
 from json import loads
 
-from db import debug_login
+from auxiliar import *
 from constantes import *
 
 
@@ -119,11 +119,23 @@ class Login(Interface):
 
     def acao_btn_logon(self):
         try:
-            # TODO placeholder function
-            dados_cliente = debug_login(self.entry_name.get().strip(), self.entry_pswd.get().strip())
-            # TODO dados_cliente.soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
-            self.main_frame.destroy()
-            MenuPrincipal(self._tk, dados_cliente)
+            pedido_logon = {"tipo": 1, "nome": self.entry_name.get().strip(),
+                            "senha": self.entry_pswd.get().strip()}
+            pedido_logon = dumps(pedido_logon)
+
+            soquete = socket(AF_INET, SOCK_STREAM)
+            soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
+            soquete.send(pedido_logon.encode())
+            dados = soquete.recv(BUFFER)
+            dados = dados.decode()
+            dados = loads(dados)
+
+            if dados["resultado"]:
+                dados_cliente = DadosCliente(dados["codigo"], dados["nome"], dados["senha"], soquete)
+                self.main_frame.destroy()
+                MenuPrincipal(self._tk, dados_cliente)
+            else:
+                showerror(title="ERRO", message="Usuario nao cadastrado")
 
         # TODO too broad exception clause
         except Exception as erro:
@@ -197,13 +209,14 @@ class Cadastro(Interface):
             soquete = socket(AF_INET, SOCK_STREAM)
             soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
             soquete.send(pedido_cadastro.encode())
-            resultado = soquete.recv(BUFFER).decode()
+            resultado = soquete.recv(BUFFER)
+            resultado = resultado.decode()
             resultado = loads(resultado)
 
             if resultado:
                 showinfo(title="AVISO", message="Usuario cadastrado com sucesso")
             else:
-                showerror(title="ERRO", message="Nao foi possivel cadastrar o usuario")
+                showerror(title="ERRO", message="Usuario ja cadastrado")
 
             soquete.close()
 
@@ -214,7 +227,7 @@ class Cadastro(Interface):
 
 
 class MenuPrincipal(Interface):
-    def __init__(self, tk, dados_cliente):
+    def __init__(self, tk, dados_cliente: DadosCliente):
         try:
             self._dados_cliente = dados_cliente
             super().__init__(tk)
@@ -246,9 +259,12 @@ class MenuPrincipal(Interface):
             self.btn_groups = Button(self.frame_botoes, text="GRUPOS", font=FONTE_BTN_MENU, width=15, padx=10, pady=5,
                                      command=self.acao_btn_groups)
             self.btn_groups.grid(row=1, column=0, pady=3)
+            self.btn_create_group = Button(self.frame_botoes, text="CRIAR GRUPO", font=FONTE_BTN_MENU, width=15, padx=10, pady=5,
+                                     command=self.acao_btn_groups)
+            self.btn_create_group.grid(row=2, column=0, pady=3)
             self.btn_exit = Button(self.frame_botoes, text="SAIR", font=FONTE_BTN_MENU, width=15, padx=10, pady=5,
                                    command=self.acao_btn_exit)
-            self.btn_exit.grid(row=2, column=0, pady=3)
+            self.btn_exit.grid(row=3, column=0, pady=3)
 
         # TODO too broad exception clause
         except Exception as erro:
@@ -261,8 +277,13 @@ class MenuPrincipal(Interface):
     def acao_btn_groups(self):
         pass
 
+    def acao_btn_create_group(self):
+        pass
+
     def acao_btn_exit(self):
         try:
+            if self._dados_cliente.soquete:
+                self._dados_cliente.soquete.close()
             self.main_frame.destroy()
             Login(self._tk)
 
