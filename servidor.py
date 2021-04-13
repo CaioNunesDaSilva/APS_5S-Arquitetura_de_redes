@@ -2,8 +2,6 @@ from socket import socket
 from socket import AF_INET
 from socket import SOCK_STREAM
 from threading import Thread
-from json import loads
-from json import dumps
 
 from auxiliar import *
 from constantes import SOCKET_ENDERECO
@@ -39,8 +37,7 @@ def controlador_cliente(conexao, endereco):
                 pedido = TipoMenssagem.converter_valor_tipo(dados_recebidos["tipo"])
 
                 if pedido == TipoMenssagem.CADASTRO_USUARIO:
-                    dados_cadastro = dumps(debug_cadastrar(dados_recebidos["nome"], dados_recebidos["senha"]))
-                    conexao.send(dados_cadastro.encode())
+                    conexao.send(codificar(debug_cadastrar(dados_recebidos["nome"], dados_recebidos["senha"])))
                     conexao.close()
                     break
 
@@ -50,7 +47,7 @@ def controlador_cliente(conexao, endereco):
                     if cliente:
                         CLIENTES.append(cliente)
 
-                    dados_enviar = dumps(cliente.to_json())
+                    dados_enviar = cliente.to_json()
                     conexao.send(dados_enviar.encode())
 
     # TODO too broad exception clause

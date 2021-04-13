@@ -1,5 +1,6 @@
 from enum import Enum
 from json import dumps
+from json import loads
 
 
 class JSONserializable:
@@ -36,6 +37,16 @@ class Usuario(ObjetoDB, JSONserializable):
             print("Modulo: auxiliar\nClasse: Usuario\nMetodo: __init__")
             print(erro)
 
+    @staticmethod
+    def usuario_from_dict(dic):
+        try:
+            return Usuario(dic["codigo"], dic["nome"], dic["senha"])
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: auxiliar\nClasse: Usuario\nMetodo: usuario_from_dict")
+            print(erro)
+
 
 class Grupo(ObjetoDB, JSONserializable):
     def __init__(self, codigo: int, nome: str, membros: [Usuario], dono: Usuario):
@@ -47,6 +58,16 @@ class Grupo(ObjetoDB, JSONserializable):
         # TODO too broad exception clause
         except Exception as erro:
             print("Modulo: auxiliar\nClasse: Grupo\nMetodo: __init__")
+            print(erro)
+
+    @staticmethod
+    def grupo_from_dict(dic):
+        try:
+            return Grupo(dic["codigo"], dic["nome"], dic["membros"], dic["dono"])
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: auxiliar\nClasse: Grupo\nMetodo: grupo_from_dict")
             print(erro)
 
 
@@ -72,3 +93,24 @@ class TipoMenssagem(Enum):
             print("Modulo: auxiliar\nClasse: TipoMenssagem\nMetodo: converter_valor_tipo")
             print(erro)
 
+
+def codificar(obj):
+    try:
+        json = dumps(obj)
+        return json.encode()
+
+    # TODO too broad exception clause
+    except Exception as erro:
+        print("Modulo: auxiliar\nFuncao: codificar")
+        print(erro)
+
+
+def descodificar(obj):
+    try:
+        json = obj.decode()
+        return loads(json)
+
+    # TODO too broad exception clause
+    except Exception as erro:
+        print("Modulo: auxiliar\nFuncao: descodificar")
+        print(erro)

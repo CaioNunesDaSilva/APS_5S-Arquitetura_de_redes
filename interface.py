@@ -6,8 +6,6 @@ from tkinter.messagebox import showerror
 from socket import socket
 from socket import AF_INET
 from socket import SOCK_STREAM
-from json import dumps
-from json import loads
 
 from auxiliar import *
 from constantes import *
@@ -17,52 +15,52 @@ class Interface(ABC):
     def __init__(self, tk):
         try:
             self._tk = tk
-            self.__iniciar_interface()
+            self._iniciar_interface()
 
         # TODO too broad exception clause
         except Exception as erro:
             print("Modulo: interface\nClasse: Interface\nMetodo: __init__")
             print(erro)
 
-    def __iniciar_interface(self):
+    def _iniciar_interface(self):
         try:
             self._tk.resizable(False, False)
             self._tk["background"] = COR_DE_FUNDO_PADRAO
-            self.__iniciar_tela()
+            self._iniciar_tela()
             self._tk.mainloop()
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: Interface\nMetodo: __iniciar_interface")
+            print("Modulo: interface\nClasse: Interface\nMetodo: _iniciar_interface")
             print(erro)
 
     @abstractmethod
-    def __iniciar_tela(self):
+    def _iniciar_tela(self):
         pass
 
-    def __mudar_titulo(self, titulo):
+    def _mudar_titulo(self, titulo):
         try:
             self._tk.title(titulo)
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: Interface\nMetodo: __mudar_titulo")
+            print("Modulo: interface\nClasse: Interface\nMetodo: _mudar_titulo")
             print(erro)
 
-    def __fechar(self):
+    def _fechar(self):
         try:
             self._tk.destroy()
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: Interface\nMetodo: __fechar")
+            print("Modulo: interface\nClasse: Interface\nMetodo: _fechar")
             print(erro)
 
 
 class Login(Interface):
-    def __iniciar_tela(self):
+    def _iniciar_tela(self):
         try:
-            self.__mudar_titulo("LOGIN")
+            self._mudar_titulo("LOGIN")
             self.main_frame = Frame(self._tk, bg=COR_DE_FUNDO_PADRAO)
             self.main_frame.pack(fill=BOTH, expand=True)
 
@@ -104,7 +102,7 @@ class Login(Interface):
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: Login\nMetodo: __iniciar_tela")
+            print("Modulo: interface\nClasse: Login\nMetodo: _iniciar_tela")
             print(erro)
 
     def __acao_btn_n_usr(self):
@@ -119,17 +117,15 @@ class Login(Interface):
 
     def __acao_btn_logon(self):
         try:
-            pedido_login = {"tipo": 1, "nome": self.entry_name.get().strip(),
-                            "senha": self.entry_pswd.get().strip()}
-            pedido_login = dumps(pedido_login)
-
             soquete = socket(AF_INET, SOCK_STREAM)
             soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
-            soquete.send(pedido_login.encode())
 
-            dados_cliente = soquete.recv(BUFFER)
-            dados_cliente = dados_cliente.decode()
-            dados_cliente = loads(dados_cliente)
+            pedido_login = {"tipo": 1, "nome": self.entry_name.get().strip(),
+                            "senha": self.entry_pswd.get().strip()}
+            soquete.send(codificar(pedido_login))
+
+            dados_cliente = descodificar(soquete.recv(BUFFER))
+            dados_cliente = Usuario.usuario_from_dict(dados_cliente)
 
             if dados_cliente:
                 self.main_frame.destroy()
@@ -144,9 +140,9 @@ class Login(Interface):
 
 
 class Cadastro(Interface):
-    def __iniciar_tela(self):
+    def _iniciar_tela(self):
         try:
-            self.__mudar_titulo("CADASTRO")
+            self._mudar_titulo("CADASTRO")
             self.main_frame = Frame(self._tk, bg=COR_DE_FUNDO_PADRAO)
             self.main_frame.pack(fill=BOTH, expand=True)
 
@@ -187,7 +183,7 @@ class Cadastro(Interface):
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: Cadastro\nMetodo: __iniciar_tela")
+            print("Modulo: interface\nClasse: Cadastro\nMetodo: _iniciar_tela")
             print(erro)
 
     def __acao_btn_back(self):
@@ -202,17 +198,14 @@ class Cadastro(Interface):
 
     def __acao_btn_n_usr(self):
         try:
-            pedido_cadastro = {"tipo": 0, "nome": str(self.entry_name.get()).strip(),
-                               "senha": str(self.entry_pswd.get()).strip()}
-            pedido_cadastro = dumps(pedido_cadastro)
-
             soquete = socket(AF_INET, SOCK_STREAM)
             soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
-            soquete.send(pedido_cadastro.encode())
 
-            resultado = soquete.recv(BUFFER)
-            resultado = resultado.decode()
-            resultado = loads(resultado)
+            pedido_cadastro = {"tipo": 0, "nome": str(self.entry_name.get()).strip(),
+                               "senha": str(self.entry_pswd.get()).strip()}
+            soquete.send(codificar(pedido_cadastro))
+
+            resultado = descodificar(soquete.recv(BUFFER))
 
             if resultado:
                 showinfo(title="AVISO", message="Usuario cadastrado com sucesso")
@@ -239,9 +232,9 @@ class MenuPrincipal(Interface):
             print("Modulo: interface\nClasse: MenuPrincipal\nMetodo: __init__")
             print(erro)
 
-    def __iniciar_tela(self):
+    def _iniciar_tela(self):
         try:
-            self.__mudar_titulo("MENU")
+            self._mudar_titulo("MENU")
             self.main_frame = Frame(self._tk, bg=COR_DE_FUNDO_PADRAO)
             self.main_frame.pack(fill=BOTH, expand=True)
 
@@ -267,7 +260,7 @@ class MenuPrincipal(Interface):
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: MenuPrincipal\nMetodo: __iniciar_tela")
+            print("Modulo: interface\nClasse: MenuPrincipal\nMetodo: _iniciar_tela")
             print(erro)
 
     def __acao_btn_users(self):
