@@ -1,5 +1,4 @@
 from tkinter import Tk
-from tkinter.messagebox import showerror
 
 from interface import Login
 
@@ -11,6 +10,5 @@ if __name__ == "__main__":
 
     # TODO too broad exception clause
     except Exception as erro:
-        print("Modulo: cliente")
+        print("Modulo: cliente\nMain")
         print(erro)
-        showerror(title="ERRO", message="Ocorreu um erro inesperado que impossibilitou a execução do programa.")

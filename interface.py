@@ -28,7 +28,7 @@ class Interface(ABC):
         try:
             self._tk.resizable(False, False)
             self._tk["background"] = COR_DE_FUNDO_PADRAO
-            self._init_tela()
+            self.__iniciar_tela()
             self._tk.mainloop()
 
         # TODO too broad exception clause
@@ -37,32 +37,32 @@ class Interface(ABC):
             print(erro)
 
     @abstractmethod
-    def _init_tela(self):
+    def __iniciar_tela(self):
         pass
 
-    def _mudar_titulo(self, titulo):
+    def __mudar_titulo(self, titulo):
         try:
             self._tk.title(titulo)
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: Interface\nMetodo: _mudar_titulo")
+            print("Modulo: interface\nClasse: Interface\nMetodo: __mudar_titulo")
             print(erro)
 
-    def _fechar(self):
+    def __fechar(self):
         try:
             self._tk.destroy()
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: Interface\nMetodo: _fechar")
+            print("Modulo: interface\nClasse: Interface\nMetodo: __fechar")
             print(erro)
 
 
 class Login(Interface):
-    def _init_tela(self):
+    def __iniciar_tela(self):
         try:
-            self._mudar_titulo("LOGIN")
+            self.__mudar_titulo("LOGIN")
             self.main_frame = Frame(self._tk, bg=COR_DE_FUNDO_PADRAO)
             self.main_frame.pack(fill=BOTH, expand=True)
 
@@ -92,9 +92,9 @@ class Login(Interface):
 
             self.frame_btn = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
             self.btn_logon = Button(self.frame_btn, text="ENTRAR", padx=5, pady=2, font=FONTE_BTN_LOGIN,
-                                    command=self.acao_btn_logon)
+                                    command=self.__acao_btn_logon)
             self.btn_n_usr = Button(self.frame_btn, text="NOVO", padx=5, pady=2, font=FONTE_BTN_LOGIN,
-                                    command=self.acao_btn_n_usr)
+                                    command=self.__acao_btn_n_usr)
 
             self.frame_btn.grid_columnconfigure(1, minsize=40)
 
@@ -104,49 +104,49 @@ class Login(Interface):
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: Login\nMetodo: __init__tela")
+            print("Modulo: interface\nClasse: Login\nMetodo: __iniciar_tela")
             print(erro)
 
-    def acao_btn_n_usr(self):
+    def __acao_btn_n_usr(self):
         try:
             self.main_frame.destroy()
             Cadastro(self._tk)
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: Login\nMetodo: acao_btn_n_usr")
+            print("Modulo: interface\nClasse: Login\nMetodo: __acao_btn_n_usr")
             print(erro)
 
-    def acao_btn_logon(self):
+    def __acao_btn_logon(self):
         try:
-            pedido_logon = {"tipo": 1, "nome": self.entry_name.get().strip(),
+            pedido_login = {"tipo": 1, "nome": self.entry_name.get().strip(),
                             "senha": self.entry_pswd.get().strip()}
-            pedido_logon = dumps(pedido_logon)
+            pedido_login = dumps(pedido_login)
 
             soquete = socket(AF_INET, SOCK_STREAM)
             soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
-            soquete.send(pedido_logon.encode())
-            dados = soquete.recv(BUFFER)
-            dados = dados.decode()
-            dados = loads(dados)
+            soquete.send(pedido_login.encode())
 
-            if dados["resultado"]:
-                dados_cliente = DadosCliente(dados["codigo"], dados["nome"], dados["senha"], soquete)
+            dados_cliente = soquete.recv(BUFFER)
+            dados_cliente = dados_cliente.decode()
+            dados_cliente = loads(dados_cliente)
+
+            if dados_cliente:
                 self.main_frame.destroy()
-                MenuPrincipal(self._tk, dados_cliente)
+                MenuPrincipal(self._tk, dados_cliente, soquete)
             else:
                 showerror(title="ERRO", message="Usuario nao cadastrado")
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: Login\nMetodo: acao_btn_logon")
+            print("Modulo: interface\nClasse: Login\nMetodo: __acao_btn_logon")
             print(erro)
 
 
 class Cadastro(Interface):
-    def _init_tela(self):
+    def __iniciar_tela(self):
         try:
-            self._mudar_titulo("CADASTRO")
+            self.__mudar_titulo("CADASTRO")
             self.main_frame = Frame(self._tk, bg=COR_DE_FUNDO_PADRAO)
             self.main_frame.pack(fill=BOTH, expand=True)
 
@@ -175,9 +175,9 @@ class Cadastro(Interface):
 
             self.frame_btn = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
             self.btn_n_usr = Button(self.frame_btn, text="CADASTRAR", padx=5, pady=2, font=FONTE_BTN_LOGIN,
-                                    command=self.acao_btn_n_usr)
+                                    command=self.__acao_btn_n_usr)
             self.btn_back = Button(self.frame_btn, text="VOLTAR", padx=5, pady=2, font=FONTE_BTN_LOGIN,
-                                   command=self.acao_btn_back)
+                                   command=self.__acao_btn_back)
 
             self.frame_btn.grid_columnconfigure(1, minsize=10)
 
@@ -187,20 +187,20 @@ class Cadastro(Interface):
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: Cadastro\nMetodo: __init__tela")
+            print("Modulo: interface\nClasse: Cadastro\nMetodo: __iniciar_tela")
             print(erro)
 
-    def acao_btn_back(self):
+    def __acao_btn_back(self):
         try:
             self.main_frame.destroy()
             Login(self._tk)
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: Cadastro\nMetodo: acao_btn_back")
+            print("Modulo: interface\nClasse: Cadastro\nMetodo: __acao_btn_back")
             print(erro)
 
-    def acao_btn_n_usr(self):
+    def __acao_btn_n_usr(self):
         try:
             pedido_cadastro = {"tipo": 0, "nome": str(self.entry_name.get()).strip(),
                                "senha": str(self.entry_pswd.get()).strip()}
@@ -209,6 +209,7 @@ class Cadastro(Interface):
             soquete = socket(AF_INET, SOCK_STREAM)
             soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
             soquete.send(pedido_cadastro.encode())
+
             resultado = soquete.recv(BUFFER)
             resultado = resultado.decode()
             resultado = loads(resultado)
@@ -222,24 +223,25 @@ class Cadastro(Interface):
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: Cadastro\nMetodo: acao_btn_n_usr")
+            print("Modulo: interface\nClasse: Cadastro\nMetodo: __acao_btn_n_usr")
             print(erro)
 
 
 class MenuPrincipal(Interface):
-    def __init__(self, tk, dados_cliente: DadosCliente):
+    def __init__(self, tk, dados_cliente: Usuario, soquete: socket):
         try:
-            self._dados_cliente = dados_cliente
+            self.soquete = soquete
+            self.dados_cliente = dados_cliente
             super().__init__(tk)
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: MenuPrincipal\nMetodo: __inti__")
+            print("Modulo: interface\nClasse: MenuPrincipal\nMetodo: __init__")
             print(erro)
 
-    def _init_tela(self):
+    def __iniciar_tela(self):
         try:
-            self._mudar_titulo("MENU")
+            self.__mudar_titulo("MENU")
             self.main_frame = Frame(self._tk, bg=COR_DE_FUNDO_PADRAO)
             self.main_frame.pack(fill=BOTH, expand=True)
 
@@ -254,40 +256,34 @@ class MenuPrincipal(Interface):
             self.frame_botoes.pack(fill=BOTH, expand=True)
 
             self.btn_users = Button(self.frame_botoes, text="USUARIOS ONLINE", font=FONTE_BTN_MENU, width=15, padx=10, pady=5,
-                                    command=self.acao_btn_users)
+                                    command=self.__acao_btn_users)
             self.btn_users.grid(row=0, column=0, pady=3)
             self.btn_groups = Button(self.frame_botoes, text="GRUPOS", font=FONTE_BTN_MENU, width=15, padx=10, pady=5,
-                                     command=self.acao_btn_groups)
+                                     command=self.__acao_btn_groups)
             self.btn_groups.grid(row=1, column=0, pady=3)
-            self.btn_create_group = Button(self.frame_botoes, text="CRIAR GRUPO", font=FONTE_BTN_MENU, width=15, padx=10, pady=5,
-                                     command=self.acao_btn_groups)
-            self.btn_create_group.grid(row=2, column=0, pady=3)
             self.btn_exit = Button(self.frame_botoes, text="SAIR", font=FONTE_BTN_MENU, width=15, padx=10, pady=5,
-                                   command=self.acao_btn_exit)
+                                   command=self.__acao_btn_exit)
             self.btn_exit.grid(row=3, column=0, pady=3)
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: MenuPrincipal\nMetodo: _init_tela")
+            print("Modulo: interface\nClasse: MenuPrincipal\nMetodo: __iniciar_tela")
             print(erro)
 
-    def acao_btn_users(self):
+    def __acao_btn_users(self):
         pass
 
-    def acao_btn_groups(self):
+    def __acao_btn_groups(self):
         pass
 
-    def acao_btn_create_group(self):
-        pass
-
-    def acao_btn_exit(self):
+    def __acao_btn_exit(self):
         try:
-            if self._dados_cliente.soquete:
-                self._dados_cliente.soquete.close()
+            if self.soquete:
+                self.soquete.close()
             self.main_frame.destroy()
             Login(self._tk)
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: interface\nClasse: MenuPrincipal\nMetodo: acao_btn_exit")
+            print("Modulo: interface\nClasse: MenuPrincipal\nMetodo: __acao_btn_exit")
             print(erro)

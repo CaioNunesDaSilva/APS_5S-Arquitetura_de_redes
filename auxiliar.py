@@ -1,79 +1,67 @@
 from enum import Enum
+from json import dumps
 
 
-class DadosCliente:
-    def __init__(self, codigo: int, nome: str, senha: str, soquete):
+class JSONserializable:
+    def to_json(self):
         try:
-            self._codigo = codigo
-            self._nome = nome
-            self._senha = senha
-            self._soquete = soquete
+            return dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: auxiliar\nClasse: DadosCliente\nMetodo: __init__")
+            print("Modulo: auxiliar\nClasse: JSONserializable\nMetodo: to_json")
             print(erro)
 
-    @property
-    def codigo(self):
+
+class ObjetoDB:
+    def __init__(self, codigo: int, nome: str, ):
         try:
-            return self._codigo
+            self.codigo = codigo
+            self.nome = nome
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: auxiliar\nClasse: DadosCliente\nMetodo: codigo")
+            print("Modulo: auxiliar\nClasse: ObjetoDB\nMetodo: __init__")
             print(erro)
 
-    @property
-    def nome(self):
+
+class Usuario(ObjetoDB, JSONserializable):
+    def __init__(self, codigo: int, nome: str, senha: str):
         try:
-            return self._nome
+            self.senha = senha
+            super().__init__(codigo, nome)
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: auxiliar\nClasse: DadosCliente\nMetodo: nome")
+            print("Modulo: auxiliar\nClasse: Usuario\nMetodo: __init__")
             print(erro)
 
-    @property
-    def senha(self):
+
+class Grupo(ObjetoDB, JSONserializable):
+    def __init__(self, codigo: int, nome: str, membros: [Usuario], dono: Usuario):
         try:
-            return self._senha
+            self.membros = membros
+            self.dono = dono
+            super().__init__(codigo, nome)
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: auxiliar\nClasse: DadosCliente\nMetodo: senha")
-            print(erro)
-
-    @property
-    def soquete(self):
-        try:
-            return self._soquete
-
-        # TODO too broad exception clause
-        except Exception as erro:
-            print("Modulo: auxiliar\nClasse: DadosCliente\nMetodo: soquete")
+            print("Modulo: auxiliar\nClasse: Grupo\nMetodo: __init__")
             print(erro)
 
 
 class TipoMenssagem(Enum):
-    CADASTRO = 0
+    CADASTRO_USUARIO = 0
     LOGIN = 1
-    MENSSAGEM_PRIVADA = 2
-    MENSSAGEM_GRUPO = 3
-    DESCONECTAR = 4
+    ATUALIZAR_LISTA_CLIENTES = 2
+    ATUALIZAR_LISTA_GRUPOS = 3
+    MENSSAGEM_PRIVADA = 4
+    MENSSAGEM_GRUPO = 5
+    CADASTRO_GRUPO = 6
+    DESCONECTAR = 7
 
     @staticmethod
-    def converte_tipo_valor(tipo):
-        try:
-            return tipo.value
-
-        # TODO too broad exception clause
-        except Exception as erro:
-            print("Modulo: auxiliar\nClasse: TipoMenssagem\nMetodo: converte_tipo_valor")
-            print(erro)
-
-    @staticmethod
-    def converte_valor_tipo(valor):
+    def converter_valor_tipo(valor):
         try:
             for tipo in TipoMenssagem:
                 if valor == tipo.value:
@@ -81,6 +69,6 @@ class TipoMenssagem(Enum):
 
         # TODO too broad exception clause
         except Exception as erro:
-            print("Modulo: auxiliar\nClasse: TipoMenssagem\nMetodo: converte_valor_tipo")
+            print("Modulo: auxiliar\nClasse: TipoMenssagem\nMetodo: converter_valor_tipo")
             print(erro)
 

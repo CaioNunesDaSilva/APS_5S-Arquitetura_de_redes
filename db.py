@@ -1,6 +1,7 @@
 import mysql.connector as MySQL
 
-from auxiliar import DadosCliente
+from auxiliar import Usuario
+from auxiliar import Grupo
 from constantes import BANCO_DE_DADOS_ENDERECO
 from constantes import BANCO_DE_DADOS_NOME
 from constantes import BANCO_DE_DADOS_USUARIO
@@ -75,12 +76,14 @@ def __desconectar(conexao, cursor=None):
 
 # TODO placeholder function
 def debug_cadastrar(nome: str, senha: str):
-    print(nome, senha)
     return True
 
 
 # TODO placeholder function
 def debug_login(nome: str, senha: str):
-    print(nome, senha)
-    dados_cliente = {"resultado": True, "codigo": 1111, "nome": "Usuario", "senha": 1234}
-    return dados_cliente
+    return Usuario(1, nome, senha)
+
+
+# TODO placeholder function
+def debug_carregar_grupos():
+    return [Grupo(1, "chat geral", [], None)]

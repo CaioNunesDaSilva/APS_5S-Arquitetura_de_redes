@@ -11,6 +11,7 @@ from constantes import SOCKET_PORTA
 from constantes import BUFFER
 from db import debug_cadastrar
 from db import debug_login
+from db import debug_carregar_grupos
 
 
 def aceitar_conexao():
@@ -29,28 +30,28 @@ def aceitar_conexao():
 def controlador_cliente(conexao, endereco):
     try:
         while True:
-            dados = conexao.recv(BUFFER)
-            if dados:
-                dados = dados.decode()
+            dados_recebidos = conexao.recv(BUFFER)
 
-                dados = loads(dados)
+            if dados_recebidos:
+                dados_recebidos = dados_recebidos.decode()
+                dados_recebidos = loads(dados_recebidos)
 
-                pedido = TipoMenssagem.converte_valor_tipo(dados["tipo"])
+                pedido = TipoMenssagem.converter_valor_tipo(dados_recebidos["tipo"])
 
-                if pedido == TipoMenssagem.CADASTRO:
-                    resultado = debug_cadastrar(dados["nome"], dados["senha"])
-                    resultado = dumps(resultado)
-                    conexao.send(resultado.encode())
+                if pedido == TipoMenssagem.CADASTRO_USUARIO:
+                    dados_cadastro = dumps(debug_cadastrar(dados_recebidos["nome"], dados_recebidos["senha"]))
+                    conexao.send(dados_cadastro.encode())
                     conexao.close()
                     break
 
                 elif pedido == TipoMenssagem.LOGIN:
-                    dados_cliente = debug_login(dados["nome"], dados["senha"])
-                    if dados_cliente["resultado"]:
-                        CLIENTES.append(DadosCliente(dados_cliente["codigo"], dados_cliente["nome"],
-                                                     dados_cliente["senha"], conexao))
-                    dados_cliente = dumps(dados_cliente)
-                    conexao.send(dados_cliente.encode())
+                    cliente = debug_login(dados_recebidos["nome"], dados_recebidos["senha"])
+
+                    if cliente:
+                        CLIENTES.append(cliente)
+
+                    dados_enviar = dumps(cliente.to_json())
+                    conexao.send(dados_enviar.encode())
 
     # TODO too broad exception clause
     except Exception as erro_thread:
@@ -61,6 +62,7 @@ def controlador_cliente(conexao, endereco):
 if __name__ == "__main__":
     try:
         CLIENTES = []
+        GRUPOS = debug_carregar_grupos()
 
         soquete = socket(AF_INET, SOCK_STREAM)
         soquete.bind((SOCKET_ENDERECO, SOCKET_PORTA))
@@ -73,5 +75,5 @@ if __name__ == "__main__":
 
     # TODO too broad exception clause
     except Exception as erro:
-        print("Modulo: servidor\n if __name__ == '__main__'")
+        print("Modulo: servidor\nMain")
         print(erro)
