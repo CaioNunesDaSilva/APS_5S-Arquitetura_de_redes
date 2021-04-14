@@ -9,69 +9,36 @@ from constantes import BANCO_DE_DADOS_SENHA
 
 
 def __conectar(host, database, user, password):
-    try:
-        conexao = MySQL.connect(host=host, database=database, user=user, password=password)
-        if conexao.is_connected():
-            return conexao
-        else:
-            # TODO too broad exception clause
-            raise Exception
-
-    # TODO too broad exception clause
-    except Exception as erro:
-        print("Modulo: db\nFuncao: __conectar")
-        print(erro)
+    conexao = MySQL.connect(host=host, database=database, user=user, password=password)
+    if conexao.is_connected():
+        return conexao
 
 
 def __select(conexao, campos: str, tabela: str, condicao=None):
-    try:
-        cursor = conexao.cursor()
-        if condicao:
-            cursor.execute(f"SELECT {campos} FROM {tabela} WHERE {condicao};")
-        else:
-            cursor.execute(f"SELECT {campos} FROM {tabela};")
-        return cursor.fetchall()
-
-    # TODO too broad exception clause
-    except Exception as erro:
-        print("Modulo: db\nFuncao: __select")
-        print(erro)
+    cursor = conexao.cursor()
+    if condicao:
+        cursor.execute(f"SELECT {campos} FROM {tabela} WHERE {condicao};")
+    else:
+        cursor.execute(f"SELECT {campos} FROM {tabela};")
+    return cursor.fetchall()
 
 
 def __insert(conexao, tabela_campos, valores):
-    try:
-        cursor = conexao.cursor()
-        cursor.execute(f"INSERT INTO {tabela_campos} VALUES {valores};")
-        conexao.commit()
-
-    # TODO too broad exception clause
-    except Exception as erro:
-        print("Modulo: db\nFuncao: __insert")
-        print(erro)
+    cursor = conexao.cursor()
+    cursor.execute(f"INSERT INTO {tabela_campos} VALUES {valores};")
+    conexao.commit()
 
 
 def __delete(conexao, tabela, condicao):
-    try:
-        cursor = conexao.cursor()
-        cursor.execute(f"DELETE FROM {tabela} WHERE {condicao};")
-        conexao.commit()
-
-    # TODO too broad exception clause
-    except Exception as erro:
-        print("Modulo: db\nFuncao: __delete")
-        print(erro)
+    cursor = conexao.cursor()
+    cursor.execute(f"DELETE FROM {tabela} WHERE {condicao};")
+    conexao.commit()
 
 
 def __desconectar(conexao, cursor=None):
-    try:
-        if cursor:
-            cursor.close()
-        conexao.close()
-
-    # TODO too broad exception clause
-    except Exception as erro:
-        print("Modulo: db\nFuncao: __desconectar")
-        print(erro)
+    if cursor:
+        cursor.close()
+    conexao.close()
 
 
 # TODO delete debug function

@@ -13,73 +13,58 @@ from db import debug_carregar_grupos
 
 
 def aceitar_conexao():
-    try:
-        while THREAD_ACEITAR_CONEXAO:
-            conexao, endereco = soquete.accept()
-            print(f"NOVA CONEXAO: {conexao}, {endereco}")
-            Thread(target=controlador_cliente, args=(conexao, endereco)).start()
-
-    # TODO too broad exception clause
-    except Exception as erro_thread:
-        print("Modulo: servidor\nFuncao: aceitar_conexao")
-        print(erro_thread)
+    while THREAD_ACEITAR_CONEXAO:
+        conexao, endereco = soquete.accept()
+        print(f"NOVA CONEXAO: {conexao}, {endereco}")
+        Thread(target=controlador_cliente, args=(conexao, endereco)).start()
 
 
 def controlador_cliente(conexao, endereco):
-    try:
-        while True:
-            dados_recebidos = conexao.recv(BUFFER)
+    while True:
+        pedido = conexao.recv(BUFFER)
 
-            if dados_recebidos:
+        if pedido:
 
-                dados_recebidos = descodificar(dados_recebidos)
+            pedido = descodificar(pedido)
+            tipo = TipoPedido.from_str(pedido["tipo"])
 
-                pedido = TipoMenssagem.converter_valor_tipo(dados_recebidos["tipo"])
+            if tipo == TipoPedido.CADASTRO_USUARIO:
+                pedido = PedidoCadastroUsuario.PedidoCadastroUsuario_from_dict(pedido)
 
-                if pedido == TipoMenssagem.CADASTRO_USUARIO:
-                    conexao.send(codificar(debug_cadastrar(dados_recebidos["nome"], dados_recebidos["senha"])))
-                    conexao.close()
-                    break
+                conexao.send(codificar(debug_cadastrar(pedido.nome, pedido.senha)))
+                conexao.close()
+                break
 
-                elif pedido == TipoMenssagem.LOGIN:
-                    cliente = debug_login(dados_recebidos["nome"], dados_recebidos["senha"])
+            elif tipo == TipoPedido.LOGIN:
+                pedido = PedidoLogin.PedidoLogin_from_dict(pedido)
 
-                    if cliente:
-                        CLIENTES.append(cliente)
+                cliente = debug_login(pedido.nome, pedido.senha)
 
-                    conexao.send(codificar(cliente))
+                if cliente:
+                    CLIENTES.append(cliente)
 
-                elif pedido == TipoMenssagem.ATUALIZAR_LISTA_CLIENTES:
-                    cliente_pedido = Usuario.usuario_from_dict(descodificar(dados_recebidos["cliente"]))
+                conexao.send(cliente.to_json().encode())
 
-                    lista_usuarios = []
-                    for cliente in CLIENTES:
-                        if cliente != cliente_pedido:
-                            lista_usuarios.append(cliente)
+            elif tipo == TipoPedido.ATUALIZAR_LISTA_CLIENTES:
+                pedido = PedidoAtualizarListaClientes.PedidoAtualizarListaClientes_from_dict(pedido)
 
-                    conexao.send(codificar(lista_usuarios))
+                lista_usuarios = []
+                for cliente in CLIENTES:
+                    if cliente != pedido.remetente:
+                        lista_usuarios.append(cliente)
 
-    # TODO too broad exception clause
-    except Exception as erro_thread:
-        print("Modulo: servidor\nFuncao: controlador_cliente")
-        print(erro_thread)
+                conexao.send(codificar(lista_usuarios))
 
 
 if __name__ == "__main__":
-    try:
-        CLIENTES = []
-        GRUPOS = debug_carregar_grupos()
+    CLIENTES = []
+    GRUPOS = debug_carregar_grupos()
 
-        soquete = socket(AF_INET, SOCK_STREAM)
-        soquete.bind((SOCKET_ENDERECO, SOCKET_PORTA))
-        soquete.listen()
-        print("SERVIDOR AGUARDANDO CONEXOES...")
+    soquete = socket(AF_INET, SOCK_STREAM)
+    soquete.bind((SOCKET_ENDERECO, SOCKET_PORTA))
+    soquete.listen()
+    print("SERVIDOR AGUARDANDO CONEXOES...")
 
-        global THREAD_ACEITAR_CONEXAO
-        THREAD_ACEITAR_CONEXAO = True
-        Thread(target=aceitar_conexao).start()
-
-    # TODO too broad exception clause
-    except Exception as erro:
-        print("Modulo: servidor\nMain")
-        print(erro)
+    global THREAD_ACEITAR_CONEXAO
+    THREAD_ACEITAR_CONEXAO = True
+    Thread(target=aceitar_conexao).start()

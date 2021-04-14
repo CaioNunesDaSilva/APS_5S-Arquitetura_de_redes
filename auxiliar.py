@@ -3,84 +3,7 @@ from json import dumps
 from json import loads
 
 
-class JSONserializable:
-    def to_json(self):
-        try:
-            return dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
-
-        # TODO too broad exception clause
-        except Exception as erro:
-            print("Modulo: auxiliar\nClasse: JSONserializable\nMetodo: to_json")
-            print(erro)
-
-
-class ObjetoDB:
-    def __init__(self, codigo: int, nome: str, ):
-        try:
-            self.codigo = codigo
-            self.nome = nome
-
-        # TODO too broad exception clause
-        except Exception as erro:
-            print("Modulo: auxiliar\nClasse: ObjetoDB\nMetodo: __init__")
-            print(erro)
-
-
-class Usuario(ObjetoDB, JSONserializable):
-    def __init__(self, codigo: int, nome: str, senha: str):
-        try:
-            self.senha = senha
-            super().__init__(codigo, nome)
-
-        # TODO too broad exception clause
-        except Exception as erro:
-            print("Modulo: auxiliar\nClasse: Usuario\nMetodo: __init__")
-            print(erro)
-
-    def __eq__(self, other):
-        try:
-            return self.nome == other.nome
-
-        # TODO too broad exception clause
-        except Exception as erro:
-            print("Modulo: auxiliar\nClasse: Usuario\nMetodo: __eq__")
-            print(erro)
-
-    @staticmethod
-    def usuario_from_dict(dic):
-        try:
-            return Usuario(dic["codigo"], dic["nome"], dic["senha"])
-
-        # TODO too broad exception clause
-        except Exception as erro:
-            print("Modulo: auxiliar\nClasse: Usuario\nMetodo: usuario_from_dict")
-            print(erro)
-
-
-class Grupo(ObjetoDB, JSONserializable):
-    def __init__(self, codigo: int, nome: str, membros: [Usuario], dono: Usuario):
-        try:
-            self.membros = membros
-            self.dono = dono
-            super().__init__(codigo, nome)
-
-        # TODO too broad exception clause
-        except Exception as erro:
-            print("Modulo: auxiliar\nClasse: Grupo\nMetodo: __init__")
-            print(erro)
-
-    @staticmethod
-    def grupo_from_dict(dic):
-        try:
-            return Grupo(dic["codigo"], dic["nome"], dic["membros"], dic["dono"])
-
-        # TODO too broad exception clause
-        except Exception as erro:
-            print("Modulo: auxiliar\nClasse: Grupo\nMetodo: grupo_from_dict")
-            print(erro)
-
-
-class TipoMenssagem(Enum):
+class TipoPedido(Enum):
     CADASTRO_USUARIO = 0
     LOGIN = 1
     ATUALIZAR_LISTA_CLIENTES = 2
@@ -90,58 +13,112 @@ class TipoMenssagem(Enum):
     CADASTRO_GRUPO = 6
     DESCONECTAR = 7
 
-    @staticmethod
-    def converter_valor_tipo(valor):
-        try:
-            for tipo in TipoMenssagem:
-                if valor == tipo.value:
-                    return tipo
+    def to_json(self):
+        return str(self.value)
 
-        # TODO too broad exception clause
-        except Exception as erro:
-            print("Modulo: auxiliar\nClasse: TipoMenssagem\nMetodo: converter_valor_tipo")
-            print(erro)
+    @staticmethod
+    def from_str(string: str):
+        return TipoPedido(int(string))
+
+
+class JSONserializable:
+    def to_json(self):
+        return dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
+
+class ObjetoDB:
+    def __init__(self, codigo: int, nome: str, ):
+        self.codigo = codigo
+        self.nome = nome
+
+
+class Usuario(ObjetoDB, JSONserializable):
+    def __init__(self, codigo: int, nome: str, senha: str):
+        self.senha = senha
+        super().__init__(codigo, nome)
+
+    def to_json(self):
+        self.codigo = str(self.codigo)
+        return super().to_json()
+
+    def __eq__(self, other):
+        return self.nome == other.nome
+
+    @staticmethod
+    def Usuario_from_dict(dic):
+        return Usuario(int(dic["codigo"]), dic["nome"], dic["senha"])
+
+
+class Grupo(ObjetoDB, JSONserializable):
+    def __init__(self, codigo: int, nome: str, membros: [Usuario], dono: Usuario):
+        self.membros = membros
+        self.dono = dono
+        super().__init__(codigo, nome)
+
+    def __eq__(self, other):
+        return self.nome == other.nome
+
+    @staticmethod
+    def Grupo_from_dict(dic):
+        return Grupo(dic["codigo"], dic["nome"], dic["membros"], dic["dono"])
+
+
+class Pedido(JSONserializable):
+    def __init__(self, tipo: TipoPedido):
+        self.tipo = tipo
+
+    def to_json(self):
+        self.tipo = self.tipo.to_json()
+        return super().to_json()
+
+
+class PedidoCadastroUsuario(Pedido):
+    def __init__(self, tipo: TipoPedido, nome: str, senha: str):
+        self.nome = nome
+        self.senha = senha
+        super().__init__(tipo)
+
+    @staticmethod
+    def PedidoCadastroUsuario_from_dict(dic):
+        return PedidoCadastroUsuario(TipoPedido.from_str(dic["tipo"]), dic["nome"], dic["senha"])
+
+
+class PedidoLogin(Pedido):
+    def __init__(self, tipo: TipoPedido, nome: str, senha: str):
+        self.nome = nome
+        self.senha = senha
+        super().__init__(tipo)
+
+    @staticmethod
+    def PedidoLogin_from_dict(dic):
+        return PedidoLogin(TipoPedido.from_str(dic["tipo"]), dic["nome"], dic["senha"])
+
+
+class PedidoAtualizarListaClientes(Pedido):
+    def __init__(self, tipo: TipoPedido, remetente: Usuario):
+        self.remetente = remetente
+        super().__init__(tipo)
+
+    def to_json(self):
+        self.remetente = self.remetente.to_json()
+        return super().to_json()
+
+    @staticmethod
+    def PedidoAtualizarListaClientes_from_dict(dic):
+        return PedidoAtualizarListaClientes(TipoPedido.from_str(dic["tipo"]),
+                                            Usuario.Usuario_from_dict(descodificar(dic["remetente"])))
 
 
 def codificar(obj):
-    try:
-        if isinstance(obj, dict):
-            for chave, valor in obj.items():
-                if isinstance(valor, Usuario) or isinstance(valor, Grupo):
-                    obj[chave] = valor.to_json()
-            obj = dumps(obj)
-            return obj.encode()
-
-        elif isinstance(obj, list):
-            for posicao, valor in enumerate(obj):
-                if isinstance(valor, Usuario) or isinstance(valor, Grupo):
-                    obj[posicao] = valor.to_json()
-            obj = dumps(obj)
-            return obj.encode()
-
-        elif isinstance(obj, Usuario) or isinstance(obj, Grupo):
-            return obj.to_json().encode()
-
-        else:
-            obj = dumps(str(obj))
-            return obj.encode()
-
-    # TODO too broad exception clause
-    except Exception as erro:
-        print("Modulo: auxiliar\nFuncao: codificar")
-        print(erro)
+    if isinstance(obj, str):
+        return obj.encode()
+    return dumps(obj).encode()
 
 
 def descodificar(obj):
-    try:
-        if isinstance(obj, bytes):
-            obj = obj.decode()
-        return loads(obj)
-
-    # TODO too broad exception clause
-    except Exception as erro:
-        print("Modulo: auxiliar\nFuncao: descodificar")
-        print(erro)
+    if isinstance(obj, bytes):
+        obj = obj.decode()
+    return loads(obj)
 
 
 # TODO delete debug function
