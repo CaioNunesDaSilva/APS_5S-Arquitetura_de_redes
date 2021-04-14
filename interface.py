@@ -264,7 +264,14 @@ class MenuPrincipal(Interface):
             print(erro)
 
     def __acao_btn_users(self):
-        pass
+        try:
+            self.main_frame.destroy()
+            MenuUsuarios(self._tk, self.dados_cliente, self.soquete)
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: interface\nClasse: MenuPrincipal\nMetodo: __acao_btn_users")
+            print(erro)
 
     def __acao_btn_groups(self):
         pass
@@ -279,4 +286,107 @@ class MenuPrincipal(Interface):
         # TODO too broad exception clause
         except Exception as erro:
             print("Modulo: interface\nClasse: MenuPrincipal\nMetodo: __acao_btn_exit")
+            print(erro)
+
+
+class MenuUsuarios(Interface):
+    def __init__(self, tk, dados_cliente: Usuario, soquete: socket):
+        try:
+            self.soquete = soquete
+            self.dados_cliente = dados_cliente
+            self.usuarios_online = self.__atualizar_usuarios_online()
+            super().__init__(tk)
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: interface\nClasse: MenuUsuarios\nMetodo: __init__")
+            print(erro)
+
+    def _iniciar_tela(self):
+        try:
+            self._mudar_titulo("USUARIOS")
+            self.main_frame = Frame(self._tk, bg=COR_DE_FUNDO_PADRAO)
+            self.main_frame.pack(fill=BOTH, expand=True)
+
+            self.frame_header = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
+
+            self.label_info = Label(self.frame_header, text=f"{len(self.usuarios_online)} usuarios online",
+                                    font=FONTE_INFO_USUARIOS, background=COR_DE_FUNDO_PADRAO, borderwidth=0)
+            self.label_info.grid(row=0, column=0, padx=3, pady=3)
+
+            self.btn_refresh = Button(self.frame_header, text="Atualizar", font=FONTE_BTN_USUARIOS,
+                                      width=15, padx=10, pady=5, command=self.__acao_btn_refresh)
+            self.btn_refresh.grid(row=0, column=1, padx=3, pady=3)
+
+            self.btn_exit = Button(self.frame_header, text="Sair", font=FONTE_BTN_USUARIOS,
+                                   width=15, padx=3, pady=3, command=self.__acao_btn_exit)
+            self.btn_exit.grid(row=0, column=2, padx=3, pady=3)
+
+            self.frame_header.pack()
+
+            self.frame_botoes_usuarios = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
+
+            for usuario in self.usuarios_online:
+                Button(self.frame_botoes_usuarios, text=usuario.nome, font=FONTE_BTN_USUARIOS,
+                       background=COR_DE_FUNDO_BTN_USUARIOS).pack()
+
+            self.frame_botoes_usuarios.pack()
+
+            self.frame_botoes = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
+            self.frame_botoes.pack(fill=BOTH, expand=True)
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: interface\nClasse: MenuUsuarios\nMetodo: _iniciar_tela")
+            print(erro)
+
+    def __atualizar_usuarios_online(self):
+        try:
+            pedido = {"tipo": TipoMenssagem.ATUALIZAR_LISTA_CLIENTES.value,
+                      "cliente": self.dados_cliente}
+            self.soquete.send(codificar(pedido))
+
+            lista_usuarios = descodificar(self.soquete.recv(BUFFER))
+
+            contagem = 0
+            for usuario in lista_usuarios:
+                usuario = descodificar(usuario)
+                lista_usuarios[contagem] = Usuario.usuario_from_dict(usuario)
+
+            return lista_usuarios
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: interface\nClasse: MenuUsuarios\nMetodo: __atualizar_usuarios_online")
+            print(erro)
+
+    def __acao_btn_refresh(self):
+        try:
+            self.usuarios_online = self.__atualizar_usuarios_online()
+
+            self.frame_botoes_usuarios.destroy()
+
+            self.frame_botoes_usuarios = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
+
+            for usuario in self.usuarios_online:
+                Button(self.frame_botoes_usuarios, text=usuario.nome, font=FONTE_BTN_USUARIOS,
+                       background=COR_DE_FUNDO_BTN_USUARIOS).pack()
+
+            self.frame_botoes_usuarios.pack()
+
+            self.label_info["text"] = f"{len(self.usuarios_online)} usuarios online"
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: interface\nClasse: MenuUsuarios\nMetodo: __acao_btn_refresh")
+            print(erro)
+
+    def __acao_btn_exit(self):
+        try:
+            self.main_frame.destroy()
+            MenuPrincipal(self._tk, self.dados_cliente, self.soquete)
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: interface\nClasse: MenuUsuarios\nMetodo: __acao_btn_exit")
             print(erro)

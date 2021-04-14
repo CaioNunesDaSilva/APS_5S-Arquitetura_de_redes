@@ -19,7 +19,7 @@ def __conectar(host, database, user, password):
 
     # TODO too broad exception clause
     except Exception as erro:
-        print("Modulo: db\nFuncao: conectar")
+        print("Modulo: db\nFuncao: __conectar")
         print(erro)
 
 
@@ -34,7 +34,7 @@ def __select(conexao, campos: str, tabela: str, condicao=None):
 
     # TODO too broad exception clause
     except Exception as erro:
-        print("Modulo: db\nFuncao: select")
+        print("Modulo: db\nFuncao: __select")
         print(erro)
 
 
@@ -46,7 +46,7 @@ def __insert(conexao, tabela_campos, valores):
 
     # TODO too broad exception clause
     except Exception as erro:
-        print("Modulo: db\nFuncao: insert")
+        print("Modulo: db\nFuncao: __insert")
         print(erro)
 
 
@@ -58,7 +58,7 @@ def __delete(conexao, tabela, condicao):
 
     # TODO too broad exception clause
     except Exception as erro:
-        print("Modulo: db\nFuncao: delete")
+        print("Modulo: db\nFuncao: __delete")
         print(erro)
 
 
@@ -70,20 +70,20 @@ def __desconectar(conexao, cursor=None):
 
     # TODO too broad exception clause
     except Exception as erro:
-        print("Modulo: db\nFuncao: desconectar")
+        print("Modulo: db\nFuncao: __desconectar")
         print(erro)
 
 
-# TODO placeholder function
+# TODO delete debug function
 def debug_cadastrar(nome: str, senha: str):
     return True
 
 
-# TODO placeholder function
+# TODO delete debug function
 def debug_login(nome: str, senha: str):
     return Usuario(1, nome, senha)
 
 
-# TODO placeholder function
+# TODO delete debug function
 def debug_carregar_grupos():
     return [Grupo(1, "chat geral", [], None)]

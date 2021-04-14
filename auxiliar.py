@@ -37,6 +37,15 @@ class Usuario(ObjetoDB, JSONserializable):
             print("Modulo: auxiliar\nClasse: Usuario\nMetodo: __init__")
             print(erro)
 
+    def __eq__(self, other):
+        try:
+            return self.nome == other.nome
+
+        # TODO too broad exception clause
+        except Exception as erro:
+            print("Modulo: auxiliar\nClasse: Usuario\nMetodo: __eq__")
+            print(erro)
+
     @staticmethod
     def usuario_from_dict(dic):
         try:
@@ -96,8 +105,26 @@ class TipoMenssagem(Enum):
 
 def codificar(obj):
     try:
-        json = dumps(obj)
-        return json.encode()
+        if isinstance(obj, dict):
+            for chave, valor in obj.items():
+                if isinstance(valor, Usuario) or isinstance(valor, Grupo):
+                    obj[chave] = valor.to_json()
+            obj = dumps(obj)
+            return obj.encode()
+
+        elif isinstance(obj, list):
+            for posicao, valor in enumerate(obj):
+                if isinstance(valor, Usuario) or isinstance(valor, Grupo):
+                    obj[posicao] = valor.to_json()
+            obj = dumps(obj)
+            return obj.encode()
+
+        elif isinstance(obj, Usuario) or isinstance(obj, Grupo):
+            return obj.to_json().encode()
+
+        else:
+            obj = dumps(str(obj))
+            return obj.encode()
 
     # TODO too broad exception clause
     except Exception as erro:
@@ -107,10 +134,16 @@ def codificar(obj):
 
 def descodificar(obj):
     try:
-        json = obj.decode()
-        return loads(json)
+        if isinstance(obj, bytes):
+            obj = obj.decode()
+        return loads(obj)
 
     # TODO too broad exception clause
     except Exception as erro:
         print("Modulo: auxiliar\nFuncao: descodificar")
         print(erro)
+
+
+# TODO delete debug function
+def debug_obj_check(obj):
+    print(obj, type(obj))

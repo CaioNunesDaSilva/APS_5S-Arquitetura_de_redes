@@ -31,8 +31,8 @@ def controlador_cliente(conexao, endereco):
             dados_recebidos = conexao.recv(BUFFER)
 
             if dados_recebidos:
-                dados_recebidos = dados_recebidos.decode()
-                dados_recebidos = loads(dados_recebidos)
+
+                dados_recebidos = descodificar(dados_recebidos)
 
                 pedido = TipoMenssagem.converter_valor_tipo(dados_recebidos["tipo"])
 
@@ -47,8 +47,17 @@ def controlador_cliente(conexao, endereco):
                     if cliente:
                         CLIENTES.append(cliente)
 
-                    dados_enviar = cliente.to_json()
-                    conexao.send(dados_enviar.encode())
+                    conexao.send(codificar(cliente))
+
+                elif pedido == TipoMenssagem.ATUALIZAR_LISTA_CLIENTES:
+                    cliente_pedido = Usuario.usuario_from_dict(descodificar(dados_recebidos["cliente"]))
+
+                    lista_usuarios = []
+                    for cliente in CLIENTES:
+                        if cliente != cliente_pedido:
+                            lista_usuarios.append(cliente)
+
+                    conexao.send(codificar(lista_usuarios))
 
     # TODO too broad exception clause
     except Exception as erro_thread:
