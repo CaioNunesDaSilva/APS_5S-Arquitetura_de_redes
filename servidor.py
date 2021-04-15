@@ -43,7 +43,7 @@ def controlador_cliente(conexao, endereco):
                 if cliente:
                     CLIENTES.append(cliente)
 
-                conexao.send(cliente.to_json().encode())
+                conexao.send(codificar(cliente))
 
             elif tipo == TipoPedido.ATUALIZAR_LISTA_CLIENTES:
                 pedido = PedidoAtualizarListaClientes.PedidoAtualizarListaClientes_from_dict(pedido)
@@ -65,6 +65,5 @@ if __name__ == "__main__":
     soquete.listen()
     print("SERVIDOR AGUARDANDO CONEXOES...")
 
-    global THREAD_ACEITAR_CONEXAO
     THREAD_ACEITAR_CONEXAO = True
     Thread(target=aceitar_conexao).start()

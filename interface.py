@@ -83,8 +83,9 @@ class Login(Interface):
         soquete = socket(AF_INET, SOCK_STREAM)
         soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
 
-        soquete.send(PedidoLogin(TipoPedido.LOGIN, self.entry_name.get().strip(),
-                                 self.entry_pswd.get().strip()).to_json().encode())
+        soquete.send(codificar(PedidoLogin(TipoPedido.LOGIN,
+                                           self.entry_name.get().strip(),
+                                           self.entry_pswd.get().strip())))
 
         dados_cliente = descodificar(soquete.recv(BUFFER))
         dados_cliente = Usuario.Usuario_from_dict(dados_cliente)
@@ -145,8 +146,9 @@ class Cadastro(Interface):
         soquete = socket(AF_INET, SOCK_STREAM)
         soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
 
-        soquete.send(PedidoCadastroUsuario(TipoPedido.CADASTRO_USUARIO,
-                     str(self.entry_name.get()).strip(), str(self.entry_pswd.get()).strip()).to_json().encode())
+        soquete.send(codificar(PedidoCadastroUsuario(TipoPedido.CADASTRO_USUARIO,
+                                                     str(self.entry_name.get()).strip(),
+                                                     str(self.entry_pswd.get()).strip())))
 
         resultado = descodificar(soquete.recv(BUFFER))
 
@@ -235,7 +237,7 @@ class MenuUsuarios(Interface):
 
         for usuario in self.usuarios_online:
             Button(self.frame_botoes_usuarios, text=usuario.nome, font=FONTE_BTN_USUARIOS,
-                   background=COR_DE_FUNDO_BTN_USUARIOS).pack()
+                   background=COR_DE_FUNDO_BTN_USUARIOS, command=self.__acao_botoes_usuarios).pack()
 
         self.frame_botoes_usuarios.pack()
 
@@ -243,15 +245,14 @@ class MenuUsuarios(Interface):
         self.frame_botoes.pack(fill=BOTH, expand=True)
 
     def __atualizar_usuarios_online(self):
-        self.soquete.send(PedidoAtualizarListaClientes(TipoPedido.ATUALIZAR_LISTA_CLIENTES, self.dados_cliente).to_json().encode())
+        self.soquete.send(codificar(PedidoAtualizarListaClientes(TipoPedido.ATUALIZAR_LISTA_CLIENTES,
+                                                                 self.dados_cliente)))
 
         lista_usuarios = descodificar(self.soquete.recv(BUFFER))
 
-        contagem = 0
-        for usuario in lista_usuarios:
+        for indice, usuario in enumerate(lista_usuarios):
             usuario = descodificar(usuario)
-            lista_usuarios[contagem] = Usuario.Usuario_from_dict(usuario)
-            contagem += 1
+            lista_usuarios[indice] = Usuario.Usuario_from_dict(usuario)
 
         return lista_usuarios
 
@@ -264,11 +265,15 @@ class MenuUsuarios(Interface):
 
         for usuario in self.usuarios_online:
             Button(self.frame_botoes_usuarios, text=usuario.nome, font=FONTE_BTN_USUARIOS,
-                   background=COR_DE_FUNDO_BTN_USUARIOS).pack()
+                   background=COR_DE_FUNDO_BTN_USUARIOS, command=self.__acao_botoes_usuarios).pack()
 
         self.frame_botoes_usuarios.pack()
 
         self.label_info["text"] = f"{len(self.usuarios_online)} usuarios online"
+
+    def __acao_botoes_usuarios(self):
+        for btn in self.frame_botoes_usuarios.winfo_children():
+            pass
 
     def __acao_btn_exit(self):
         self.main_frame.destroy()

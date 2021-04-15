@@ -55,6 +55,16 @@ class Grupo(ObjetoDB, JSONserializable):
         self.dono = dono
         super().__init__(codigo, nome)
 
+    def to_json(self):
+        self.codigo = str(self.codigo)
+
+        for indice, membro in enumerate(self.membros):
+            self.membros[indice] = membro.to_json()
+
+        self.dono = self.dono.to_json()
+
+        return super().to_json()
+
     def __eq__(self, other):
         return self.nome == other.nome
 
@@ -110,9 +120,26 @@ class PedidoAtualizarListaClientes(Pedido):
 
 
 def codificar(obj):
-    if isinstance(obj, str):
+    if isinstance(obj, JSONserializable):
+        return obj.to_json().encode()
+
+    elif isinstance(obj, dict):
+        for chave, valor in obj.items():
+            if isinstance(valor, JSONserializable):
+                obj[chave] = valor.to_json()
+        return dumps(obj).encode()
+
+    elif isinstance(obj, list):
+        for indice, item in enumerate(obj):
+            if isinstance(item, JSONserializable):
+                obj[indice] = item.to_json()
+        return dumps(obj).encode()
+
+    elif isinstance(obj, str):
         return obj.encode()
-    return dumps(obj).encode()
+
+    else:
+        return dumps(obj).encode()
 
 
 def descodificar(obj):
@@ -124,3 +151,4 @@ def descodificar(obj):
 # TODO delete debug function
 def debug_obj_check(obj):
     print(obj, type(obj))
+
