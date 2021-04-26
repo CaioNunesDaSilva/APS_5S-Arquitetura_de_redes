@@ -48,6 +48,10 @@ class Usuario(ObjetoDB, JSONserializable):
     def Usuario_from_dict(dic):
         return Usuario(int(dic["codigo"]), dic["nome"], dic["senha"])
 
+    @staticmethod
+    def clonar(obj):
+        return Usuario(obj.codigo, obj.nome, obj.senha)
+
 
 class Grupo(ObjetoDB, JSONserializable):
     def __init__(self, codigo: int, nome: str, membros: [Usuario], dono: Usuario):
@@ -70,7 +74,25 @@ class Grupo(ObjetoDB, JSONserializable):
 
     @staticmethod
     def Grupo_from_dict(dic):
-        return Grupo(dic["codigo"], dic["nome"], dic["membros"], dic["dono"])
+        membros = []
+        for membro in dic["membros"]:
+            membros.append(Usuario.Usuario_from_dict(descodificar(membro)))
+
+        return Grupo(dic["codigo"], dic["nome"], membros, Usuario.Usuario_from_dict(descodificar(dic["dono"])))
+
+    @staticmethod
+    def clonar(obj):
+        membros = []
+        for membro in obj.membros:
+            if isinstance(membro, str):
+                membro = loads(membro)
+
+            if isinstance(membro, dict):
+                membro = Usuario.Usuario_from_dict(membro)
+
+            membros.append(Usuario.clonar(membro))
+
+        return Grupo(obj.codigo, obj.nome, membros, Usuario.clonar(obj.dono))
 
 
 class Pedido(JSONserializable):
@@ -117,6 +139,21 @@ class PedidoAtualizarListaClientes(Pedido):
     def PedidoAtualizarListaClientes_from_dict(dic):
         return PedidoAtualizarListaClientes(TipoPedido.from_str(dic["tipo"]),
                                             Usuario.Usuario_from_dict(descodificar(dic["remetente"])))
+
+
+class PedidoAtualizarListaGrupos(Pedido):
+    def __init__(self, tipo: TipoPedido, remetente: Usuario):
+        self.remetente = remetente
+        super().__init__(tipo)
+
+    def to_json(self):
+        self.remetente = self.remetente.to_json()
+        return super().to_json()
+
+    @staticmethod
+    def PedidoAtualizarListaGrupos_from_dict(dic):
+        return PedidoAtualizarListaGrupos(TipoPedido.from_str(dic["tipo"]),
+                                          Usuario.Usuario_from_dict(descodificar(dic["remetente"])))
 
 
 def codificar(obj):

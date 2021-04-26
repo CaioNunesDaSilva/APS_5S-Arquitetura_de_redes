@@ -51,9 +51,19 @@ def controlador_cliente(conexao, endereco):
                 lista_usuarios = []
                 for cliente in CLIENTES:
                     if cliente != pedido.remetente:
-                        lista_usuarios.append(cliente)
+                        lista_usuarios.append(Usuario.clonar(cliente))
 
                 conexao.send(codificar(lista_usuarios))
+
+            elif tipo == TipoPedido.ATUALIZAR_LISTA_GRUPOS:
+                pedido = PedidoAtualizarListaGrupos.PedidoAtualizarListaGrupos_from_dict(pedido)
+
+                lista_grupos = []
+                for grupo in GRUPOS:
+                    if pedido.remetente in grupo.membros:
+                        lista_grupos.append(Grupo.clonar(grupo))
+
+                conexao.send(codificar(lista_grupos))
 
 
 if __name__ == "__main__":

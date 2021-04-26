@@ -41,16 +41,17 @@ def __desconectar(conexao, cursor=None):
     conexao.close()
 
 
-# TODO delete debug function
+# TODO deletar funcao de debug
 def debug_cadastrar(nome: str, senha: str):
     return True
 
 
-# TODO delete debug function
+# TODO deletar funcao de debug
 def debug_login(nome: str, senha: str):
     return Usuario(1, nome, senha)
 
 
-# TODO delete debug function
+# TODO deletar funcao de debug
 def debug_carregar_grupos():
-    return [Grupo(1, "chat geral", [], None)]
+    return [Grupo(1, "grupo1", [Usuario(1, "a", "a"), Usuario(2, "b", "b")], Usuario(1, "a", "a")),
+            Grupo(2, "grupo2", [Usuario(1, "a", "a")], Usuario(1, "a", "a"))]

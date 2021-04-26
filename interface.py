@@ -196,7 +196,8 @@ class MenuPrincipal(Interface):
         MenuUsuarios(self._tk, self.dados_cliente, self.soquete)
 
     def __acao_btn_groups(self):
-        pass
+        self.main_frame.destroy()
+        MenuGrupos(self._tk, self.dados_cliente, self.soquete)
 
     def __acao_btn_exit(self):
         if self.soquete:
@@ -220,14 +221,14 @@ class MenuUsuarios(Interface):
         self.frame_header = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
 
         self.label_info = Label(self.frame_header, text=f"{len(self.usuarios_online)} usuarios online",
-                                font=FONTE_INFO_USUARIOS, background=COR_DE_FUNDO_PADRAO, borderwidth=0)
+                                font=FONTE_INFO_LISTA, background=COR_DE_FUNDO_PADRAO, borderwidth=0)
         self.label_info.grid(row=0, column=0, padx=3, pady=3)
 
-        self.btn_refresh = Button(self.frame_header, text="Atualizar", font=FONTE_BTN_USUARIOS,
+        self.btn_refresh = Button(self.frame_header, text="Atualizar", font=FONTE_BTN_LISTA,
                                   width=15, padx=10, pady=5, command=self.__acao_btn_refresh)
         self.btn_refresh.grid(row=0, column=1, padx=3, pady=3)
 
-        self.btn_exit = Button(self.frame_header, text="Sair", font=FONTE_BTN_USUARIOS,
+        self.btn_exit = Button(self.frame_header, text="Sair", font=FONTE_BTN_LISTA,
                                width=15, padx=3, pady=3, command=self.__acao_btn_exit)
         self.btn_exit.grid(row=0, column=2, padx=3, pady=3)
 
@@ -236,8 +237,8 @@ class MenuUsuarios(Interface):
         self.frame_botoes_usuarios = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
 
         for usuario in self.usuarios_online:
-            Button(self.frame_botoes_usuarios, text=usuario.nome, font=FONTE_BTN_USUARIOS,
-                   background=COR_DE_FUNDO_BTN_USUARIOS, command=self.__acao_botoes_usuarios).pack()
+            Button(self.frame_botoes_usuarios, text=usuario.nome, font=FONTE_BTN_LISTA,
+                   background=COR_DE_FUNDO_BTN_LISTA, command=self.__acao_botoes_usuarios).pack()
 
         self.frame_botoes_usuarios.pack()
 
@@ -246,13 +247,12 @@ class MenuUsuarios(Interface):
 
     def __atualizar_usuarios_online(self):
         self.soquete.send(codificar(PedidoAtualizarListaClientes(TipoPedido.ATUALIZAR_LISTA_CLIENTES,
-                                                                 self.dados_cliente)))
+                                    self.dados_cliente)))
 
         lista_usuarios = descodificar(self.soquete.recv(BUFFER))
 
         for indice, usuario in enumerate(lista_usuarios):
-            usuario = descodificar(usuario)
-            lista_usuarios[indice] = Usuario.Usuario_from_dict(usuario)
+            lista_usuarios[indice] = Usuario.Usuario_from_dict(descodificar(usuario))
 
         return lista_usuarios
 
@@ -264,8 +264,8 @@ class MenuUsuarios(Interface):
         self.frame_botoes_usuarios = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
 
         for usuario in self.usuarios_online:
-            Button(self.frame_botoes_usuarios, text=usuario.nome, font=FONTE_BTN_USUARIOS,
-                   background=COR_DE_FUNDO_BTN_USUARIOS, command=self.__acao_botoes_usuarios).pack()
+            Button(self.frame_botoes_usuarios, text=usuario.nome, font=FONTE_BTN_LISTA,
+                   background=COR_DE_FUNDO_BTN_LISTA, command=self.__acao_botoes_usuarios).pack()
 
         self.frame_botoes_usuarios.pack()
 
@@ -274,6 +274,80 @@ class MenuUsuarios(Interface):
     def __acao_botoes_usuarios(self):
         for btn in self.frame_botoes_usuarios.winfo_children():
             pass
+
+    def __acao_btn_exit(self):
+        self.main_frame.destroy()
+        MenuPrincipal(self._tk, self.dados_cliente, self.soquete)
+
+
+class MenuGrupos(Interface):
+    def __init__(self, tk, dados_cliente: Usuario, soquete: socket):
+        self.soquete = soquete
+        self.dados_cliente = dados_cliente
+        self.grupos_participante = self.__atualizar_grupos_participantes()
+        super().__init__(tk)
+
+    def _iniciar_tela(self):
+        self._mudar_titulo("GRUPOS")
+        self.main_frame = Frame(self._tk, bg=COR_DE_FUNDO_PADRAO)
+        self.main_frame.pack(fill=BOTH, expand=True)
+
+        self.frame_header = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
+
+        self.label_info = Label(self.frame_header, text=f"{len(self.grupos_participante)} grupos",
+                                font=FONTE_INFO_LISTA, background=COR_DE_FUNDO_PADRAO, borderwidth=0)
+        self.label_info.grid(row=0, column=0, padx=3, pady=3)
+
+        self.btn_refresh = Button(self.frame_header, text="Atualizar", font=FONTE_BTN_LISTA,
+                                  width=15, padx=10, pady=5, command=self.__acao_btn_refresh)
+        self.btn_refresh.grid(row=0, column=1, padx=3, pady=3)
+
+        self.btn_exit = Button(self.frame_header, text="Sair", font=FONTE_BTN_LISTA,
+                               width=15, padx=3, pady=3, command=self.__acao_btn_exit)
+        self.btn_exit.grid(row=0, column=2, padx=3, pady=3)
+
+        self.frame_header.pack()
+
+        self.frame_botoes_grupos = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
+
+        for grupo in self.grupos_participante:
+            Button(self.frame_botoes_grupos, text=grupo.nome, font=FONTE_BTN_LISTA,
+                   background=COR_DE_FUNDO_BTN_LISTA, command=self.__acao_botoes_grupos).pack()
+
+        self.frame_botoes_grupos.pack()
+
+        self.frame_botoes = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
+        self.frame_botoes.pack(fill=BOTH, expand=True)
+
+    def __atualizar_grupos_participantes(self):
+        self.soquete.send(codificar(PedidoAtualizarListaGrupos(TipoPedido.ATUALIZAR_LISTA_GRUPOS,
+                                    self.dados_cliente)))
+
+        lista_grupos = descodificar(self.soquete.recv(BUFFER))
+
+        for indice, grupo in enumerate(lista_grupos):
+            lista_grupos[indice] = Grupo.Grupo_from_dict(descodificar(grupo))
+
+        return lista_grupos
+
+    def __acao_botoes_grupos(self):
+        for btn in self.frame_botoes_grupos.winfo_children():
+            pass
+
+    def __acao_btn_refresh(self):
+        self.grupos_participante = self.__atualizar_grupos_participantes()
+
+        self.frame_botoes_grupos.destroy()
+
+        self.frame_botoes_grupos = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
+
+        for grupo in self.grupos_participante:
+            Button(self.frame_botoes_grupos, text=grupo.nome, font=FONTE_BTN_LISTA,
+                   background=COR_DE_FUNDO_BTN_LISTA, command=self.__acao_botoes_grupos).pack()
+
+        self.frame_botoes_grupos.pack()
+
+        self.label_info["text"] = f"{len(self.grupos_participante)} grupos"
 
     def __acao_btn_exit(self):
         self.main_frame.destroy()
