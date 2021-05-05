@@ -10,6 +10,7 @@ from constantes import BUFFER
 from db import debug_cadastrar
 from db import debug_login
 from db import debug_carregar_grupos
+from db import debug_cadastrar_grupo
 
 
 def aceitar_conexao():
@@ -81,6 +82,14 @@ def controlador_cliente(conexao, endereco):
                             if cliente[0] in grupo.membros and cliente[0] != pedido.remetente:
                                 cliente[1].send(codificar(MensagemGrupo.clonar(pedido)))
                         break
+
+            elif pedido.tipo == TipoPedido.CADASTRO_GRUPO:
+                print(f"PEDIDO DE CADASTRO DE GRUPO POR {pedido.remetente.nome} NA CONEXAO {conexao}")
+
+                debug_obj_check(pedido.nome)
+                debug_obj_check(pedido.integrantes)
+
+                conexao.send(codificar(debug_cadastrar_grupo(pedido.nome, pedido.integrantes)))
 
         else:
             conexao.send(codificar(None))

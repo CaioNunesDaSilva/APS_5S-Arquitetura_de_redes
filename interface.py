@@ -158,6 +158,8 @@ class Cadastro(Interface):
 
         soquete.close()
 
+        self.entry_name.delete(0, "end")
+
 
 class MenuPrincipal(Interface):
     def __init__(self, tk, dados_cliente: Usuario, soquete: socket):
@@ -302,9 +304,13 @@ class MenuGrupos(Interface):
                                   width=15, padx=10, pady=5, command=self.__acao_btn_refresh)
         self.btn_refresh.grid(row=0, column=1, padx=3, pady=3)
 
+        self.btn_nw_group = Button(self.frame_header, text="Novo Grupo", font=FONTE_BTN_GRUPOS,
+                                   width=15, padx=10, pady=5, command=self.__acao_btn_nw_group)
+        self.btn_nw_group.grid(row=0, column=2, padx=3, pady=3)
+
         self.btn_exit = Button(self.frame_header, text="Sair", font=FONTE_BTN_GRUPOS,
                                width=15, padx=3, pady=3, command=self.__acao_btn_exit)
-        self.btn_exit.grid(row=0, column=2, padx=3, pady=3)
+        self.btn_exit.grid(row=0, column=3, padx=3, pady=3)
 
         self.frame_header.pack()
 
@@ -349,6 +355,10 @@ class MenuGrupos(Interface):
         self.frame_botoes_grupos.pack()
 
         self.label_info["text"] = f"{len(self.grupos_participante)} grupos"
+
+    def __acao_btn_nw_group(self):
+        self.main_frame.destroy()
+        CadastroGrupo(self._tk, self.dados_cliente, self.soquete)
 
     def __acao_btn_exit(self):
         self.main_frame.destroy()
@@ -489,4 +499,70 @@ class ChatGrupo(Interface):
 
         self.main_frame.destroy()
         MenuGrupos(self._tk, self.dados_cliente, self.soquete)
+
+
+class CadastroGrupo(Interface):
+    def __init__(self, tk, dados_cliente: Usuario, soquete: socket):
+        self.soquete = soquete
+        self.dados_cliente = dados_cliente
+        super().__init__(tk)
+
+    def _iniciar_tela(self):
+        self._mudar_titulo("Cadastrar Grupo")
+        self.main_frame = Frame(self._tk, bg=COR_DE_FUNDO_PADRAO)
+        self.main_frame.pack(fill=BOTH, expand=True)
+
+        self.frame_entry = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
+        self.label_name = Label(self.frame_entry, text="Nome do Grupo", bg=COR_DE_FUNDO_PADRAO, font=FONTE_LABEL_CADASTRO)
+        self.entry_name = Entry(self.frame_entry, borderwidth=2, width=18, font=FONTE_ENTRY_CADASTRO)
+
+        self.label_members = Label(self.frame_entry, text="Integrantes", bg=COR_DE_FUNDO_PADRAO, font=FONTE_LABEL_CADASTRO)
+        self.entry_members = Entry(self.frame_entry, borderwidth=2, width=18, font=FONTE_ENTRY_CADASTRO)
+
+        self.frame_entry.grid_rowconfigure(1, minsize=50)
+        self.frame_entry.grid_rowconfigure(3, minsize=50)
+        self.frame_entry.grid_rowconfigure(5, minsize=50)
+
+        self.frame_entry.pack(fill=X)
+        self.label_name.grid(row=0, column=0, sticky=W)
+        self.entry_name.grid(row=1, column=0, sticky=W+N)
+        self.label_members.grid(row=2, column=0, sticky=W)
+        self.entry_members.grid(row=3, column=0, sticky=W+N)
+
+        self.label_info = Label(self.main_frame,
+                                text="digite o nome dos integrantes, sem espaco, separados por virgula",
+                                bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
+        self.label_info.pack()
+
+        self.frame_btn = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
+        self.btn_nw_group = Button(self.frame_btn, text="CADASTRAR", padx=5, pady=2, font=FONTE_BTN_CADASTRO,
+                                   command=self.__acao_btn_nw_group)
+        self.btn_back = Button(self.frame_btn, text="VOLTAR", padx=5, pady=2, font=FONTE_BTN_CADASTRO,
+                               command=self.__acao_btn_back)
+
+        self.frame_btn.grid_columnconfigure(1, minsize=10)
+
+        self.frame_btn.pack()
+        self.btn_nw_group.grid(row=0, column=2, sticky=W)
+        self.btn_back.grid(row=0, column=0, sticky=E)
+
+    def __acao_btn_nw_group(self):
+        self.soquete.send(codificar(PedidoCadastroGrupo(self.dados_cliente,
+                                                        str(self.entry_name.get()).strip(),
+                                                        str(self.entry_members.get()).strip().split(","))))
+
+        resultado = descodificar(self.soquete.recv(BUFFER))
+
+        if resultado:
+            showinfo(title="AVISO", message="Usuario cadastrado com sucesso")
+        else:
+            showerror(title="ERRO", message="Usuario ja cadastrado")
+
+        self.entry_name.delete(0, "end")
+
+    def __acao_btn_back(self):
+        self.main_frame.destroy()
+        MenuGrupos(self._tk, self.dados_cliente, self.soquete)
+
+
 

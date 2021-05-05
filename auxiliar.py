@@ -183,14 +183,32 @@ class MensagemGrupo(Pedido):
         return super().to_json()
 
     @staticmethod
+    def clonar(obj):
+        return MensagemGrupo(obj.remetente, obj.mensagem, obj.grupo)
+
+    @staticmethod
     def MensagemGrupo_from_dict(dic):
         return MensagemGrupo(Usuario.Usuario_from_dict(loads(dic["remetente"])),
                              dic["mensagem"],
                              dic["grupo"])
 
+
+class PedidoCadastroGrupo(Pedido):
+    def __init__(self, remetente: Usuario, nome: str, integrantes):
+        self.remetente = remetente
+        self.nome = nome
+        self.integrantes = integrantes
+        super().__init__(TipoPedido.CADASTRO_GRUPO)
+
+    def to_json(self):
+        self.remetente = self.remetente.to_json()
+        return super().to_json()
+
     @staticmethod
-    def clonar(obj):
-        return MensagemGrupo(obj.remetente, obj.mensagem, obj.grupo)
+    def PedidoCadastroGrupo_from_dict(dic):
+        return PedidoCadastroGrupo(Usuario.Usuario_from_dict(loads(dic["remetente"])),
+                                   dic["nome"],
+                                   dic["integrantes"])
 
 
 def Pedido_from_dic(dic: dict):
@@ -210,6 +228,8 @@ def Pedido_from_dic(dic: dict):
         return MensagemPrivada.MensagemPrivada_from_dict(dic)
     elif tipo == TipoPedido.MENSSAGEM_GRUPO:
         return MensagemGrupo.MensagemGrupo_from_dict(dic)
+    elif tipo == TipoPedido.CADASTRO_GRUPO:
+        return PedidoCadastroGrupo.PedidoCadastroGrupo_from_dict(dic)
 
 
 def codificar(obj):
