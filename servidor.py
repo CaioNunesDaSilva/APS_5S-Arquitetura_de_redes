@@ -22,41 +22,41 @@ def aceitar_conexao():
 def controlador_cliente(conexao, endereco):
     while True:
         pedido = conexao.recv(BUFFER)
+        pedido = descodificar(pedido)
 
         if pedido:
 
-            pedido = descodificar(pedido)
-            tipo = TipoPedido.from_str(pedido["tipo"])
+            pedido = Pedido_from_dic(pedido)
 
-            if tipo == TipoPedido.CADASTRO_USUARIO:
-                pedido = PedidoCadastroUsuario.PedidoCadastroUsuario_from_dict(pedido)
+            if pedido.tipo == TipoPedido.CADASTRO_USUARIO:
+                print(f"PEDIDO DE CADASTRO DE: {pedido.nome} NA A CONEXAO {conexao}")
 
                 conexao.send(codificar(debug_cadastrar(pedido.nome, pedido.senha)))
                 conexao.close()
                 break
 
-            elif tipo == TipoPedido.LOGIN:
-                pedido = PedidoLogin.PedidoLogin_from_dict(pedido)
+            elif pedido.tipo == TipoPedido.LOGIN:
+                print(f"PEDIDO DE LOGIN DE: {pedido.nome} NA A CONEXAO {conexao}")
 
                 cliente = debug_login(pedido.nome, pedido.senha)
 
                 if cliente:
-                    CLIENTES.append(cliente)
+                    CLIENTES.append([cliente, conexao])
 
                 conexao.send(codificar(cliente))
 
-            elif tipo == TipoPedido.ATUALIZAR_LISTA_CLIENTES:
-                pedido = PedidoAtualizarListaClientes.PedidoAtualizarListaClientes_from_dict(pedido)
+            elif pedido.tipo == TipoPedido.ATUALIZAR_LISTA_CLIENTES:
+                print(f"PEDIDO DA LISTA DE USUARIOS PARA: {pedido.remetente.nome} NA A CONEXAO {conexao}")
 
                 lista_usuarios = []
                 for cliente in CLIENTES:
-                    if cliente != pedido.remetente:
-                        lista_usuarios.append(Usuario.clonar(cliente))
+                    if cliente[0] != pedido.remetente:
+                        lista_usuarios.append(Usuario.clonar(cliente[0]))
 
                 conexao.send(codificar(lista_usuarios))
 
-            elif tipo == TipoPedido.ATUALIZAR_LISTA_GRUPOS:
-                pedido = PedidoAtualizarListaGrupos.PedidoAtualizarListaGrupos_from_dict(pedido)
+            elif pedido.tipo == TipoPedido.ATUALIZAR_LISTA_GRUPOS:
+                print(f"PEDIDO DA LISTA DE GRUPOS PARA: {pedido.remetente.nome} NA A CONEXAO {conexao}")
 
                 lista_grupos = []
                 for grupo in GRUPOS:
@@ -65,9 +65,31 @@ def controlador_cliente(conexao, endereco):
 
                 conexao.send(codificar(lista_grupos))
 
+            elif pedido.tipo == TipoPedido.MENSSAGEM_PRIVADA:
+                print(f"TROCA DE MENSAGENS ENTRE {pedido.remetente.nome} E {pedido.destinatario} NA CONEXAO {conexao}")
+
+                for cliente in CLIENTES:
+                    if pedido.destinatario == cliente[0].nome:
+                        cliente[1].send(codificar(pedido))
+
+            elif pedido.tipo == TipoPedido.MENSSAGEM_GRUPO:
+                print(f"MENSAGENS DE {pedido.remetente.nome} NO GRUPO {pedido.grupo} NA CONEXAO {conexao}")
+
+                for grupo in GRUPOS:
+                    if grupo.nome == pedido.grupo:
+                        for cliente in CLIENTES:
+                            if cliente[0] in grupo.membros and cliente[0] != pedido.remetente:
+                                cliente[1].send(codificar(MensagemGrupo.clonar(pedido)))
+                        break
+
+        else:
+            conexao.send(codificar(None))
+
 
 if __name__ == "__main__":
-    CLIENTES = []
+    # TODO deletar valores de teste
+    CLIENTES = [[Usuario(0, "teste1"), None],
+                [Usuario(0, "teste2"), None]]
     GRUPOS = debug_carregar_grupos()
 
     soquete = socket(AF_INET, SOCK_STREAM)

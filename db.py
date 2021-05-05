@@ -48,10 +48,10 @@ def debug_cadastrar(nome: str, senha: str):
 
 # TODO deletar funcao de debug
 def debug_login(nome: str, senha: str):
-    return Usuario(1, nome, senha)
+    return Usuario(1, nome)
 
 
 # TODO deletar funcao de debug
 def debug_carregar_grupos():
-    return [Grupo(1, "grupo1", [Usuario(1, "a", "a"), Usuario(2, "b", "b")], Usuario(1, "a", "a")),
-            Grupo(2, "grupo2", [Usuario(1, "a", "a")], Usuario(1, "a", "a"))]
+    return [Grupo(1, "grupo1", [Usuario(1, "a"), Usuario(2, "b")], Usuario(1, "a")),
+            Grupo(2, "grupo2", [Usuario(1, "a")], Usuario(1, "a"))]
