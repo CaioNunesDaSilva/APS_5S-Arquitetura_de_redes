@@ -166,7 +166,7 @@ class MensagemPrivada(Pedido):
 
     @staticmethod
     def MensagemPrivada_from_dict(dic):
-        return MensagemPrivada(Usuario.Usuario_from_dict(loads(dic["remetente"])),
+        return MensagemPrivada(Usuario.Usuario_from_dict(descodificar(dic["remetente"])),
                                dic["mensagem"],
                                dic["destinatario"])
 
@@ -188,7 +188,7 @@ class MensagemGrupo(Pedido):
 
     @staticmethod
     def MensagemGrupo_from_dict(dic):
-        return MensagemGrupo(Usuario.Usuario_from_dict(loads(dic["remetente"])),
+        return MensagemGrupo(Usuario.Usuario_from_dict(descodificar(dic["remetente"])),
                              dic["mensagem"],
                              dic["grupo"])
 
@@ -206,9 +206,23 @@ class PedidoCadastroGrupo(Pedido):
 
     @staticmethod
     def PedidoCadastroGrupo_from_dict(dic):
-        return PedidoCadastroGrupo(Usuario.Usuario_from_dict(loads(dic["remetente"])),
+        return PedidoCadastroGrupo(Usuario.Usuario_from_dict(descodificar(dic["remetente"])),
                                    dic["nome"],
                                    dic["integrantes"])
+
+
+class PedidoDesconectar(Pedido):
+    def __init__(self, remetente: Usuario):
+        self.remetente = remetente
+        super().__init__(TipoPedido.DESCONECTAR)
+
+    def to_json(self):
+        self.remetente = self.remetente.to_json()
+        return super().to_json()
+
+    @staticmethod
+    def PedidoDesconectar_from_dict(dic):
+        return PedidoDesconectar(Usuario.Usuario_from_dict(descodificar(dic["remetente"])))
 
 
 def Pedido_from_dic(dic: dict):
@@ -230,6 +244,10 @@ def Pedido_from_dic(dic: dict):
         return MensagemGrupo.MensagemGrupo_from_dict(dic)
     elif tipo == TipoPedido.CADASTRO_GRUPO:
         return PedidoCadastroGrupo.PedidoCadastroGrupo_from_dict(dic)
+    elif tipo == TipoPedido.DESCONECTAR:
+        return PedidoDesconectar.PedidoDesconectar_from_dict(dic)
+    else:
+        return None
 
 
 def codificar(obj):

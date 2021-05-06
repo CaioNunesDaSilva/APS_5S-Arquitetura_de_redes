@@ -22,8 +22,7 @@ def aceitar_conexao():
 
 def controlador_cliente(conexao, endereco):
     while True:
-        pedido = conexao.recv(BUFFER)
-        pedido = descodificar(pedido)
+        pedido = descodificar(conexao.recv(BUFFER))
 
         if pedido:
 
@@ -47,12 +46,12 @@ def controlador_cliente(conexao, endereco):
                 conexao.send(codificar(cliente))
 
             elif pedido.tipo == TipoPedido.ATUALIZAR_LISTA_CLIENTES:
-                print(f"PEDIDO DA LISTA DE USUARIOS PARA: {pedido.remetente.nome} NA A CONEXAO {conexao}")
+                print(f"PEDIDO DA LISTA DE USUARIOS PARA {pedido.remetente.nome} NA A CONEXAO {conexao}")
 
                 lista_usuarios = []
-                for cliente in CLIENTES:
-                    if cliente[0] != pedido.remetente:
-                        lista_usuarios.append(Usuario.clonar(cliente[0]))
+                for cliente, soquete_cliente in CLIENTES:
+                    if cliente != pedido.remetente:
+                        lista_usuarios.append(Usuario.clonar(cliente))
 
                 conexao.send(codificar(lista_usuarios))
 
@@ -69,27 +68,38 @@ def controlador_cliente(conexao, endereco):
             elif pedido.tipo == TipoPedido.MENSSAGEM_PRIVADA:
                 print(f"TROCA DE MENSAGENS ENTRE {pedido.remetente.nome} E {pedido.destinatario} NA CONEXAO {conexao}")
 
-                for cliente in CLIENTES:
-                    if pedido.destinatario == cliente[0].nome:
-                        cliente[1].send(codificar(pedido))
+                for cliente, soquete_cliente in CLIENTES:
+                    if pedido.destinatario == cliente.nome:
+                        soquete_cliente.send(codificar(pedido))
 
             elif pedido.tipo == TipoPedido.MENSSAGEM_GRUPO:
                 print(f"MENSAGENS DE {pedido.remetente.nome} NO GRUPO {pedido.grupo} NA CONEXAO {conexao}")
 
                 for grupo in GRUPOS:
                     if grupo.nome == pedido.grupo:
-                        for cliente in CLIENTES:
-                            if cliente[0] in grupo.membros and cliente[0] != pedido.remetente:
-                                cliente[1].send(codificar(MensagemGrupo.clonar(pedido)))
+                        for cliente, soquete_cliente in CLIENTES:
+                            if cliente in grupo.membros and cliente != pedido.remetente:
+                                soquete_cliente.send(codificar(MensagemGrupo.clonar(pedido)))
                         break
 
             elif pedido.tipo == TipoPedido.CADASTRO_GRUPO:
                 print(f"PEDIDO DE CADASTRO DE GRUPO POR {pedido.remetente.nome} NA CONEXAO {conexao}")
 
-                debug_obj_check(pedido.nome)
-                debug_obj_check(pedido.integrantes)
-
                 conexao.send(codificar(debug_cadastrar_grupo(pedido.nome, pedido.integrantes)))
+                GRUPOS = debug_carregar_grupos()
+
+            elif pedido.tipo == TipoPedido.DESCONECTAR:
+                print(f"PEDIDO DE DESCONEXAO POR {pedido.remetente.nome} NA CONEXAO {conexao}")
+
+                usuario_desconetado = None
+                for indice, cliente in enumerate(CLIENTES):
+                    if pedido.remetente == cliente[0]:
+                        usuario_desconetado = CLIENTES.pop(indice)
+
+                conexao.send(codificar(bool(usuario_desconetado)))
+
+                conexao.close()
+                break
 
         else:
             conexao.send(codificar(None))

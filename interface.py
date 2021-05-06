@@ -149,9 +149,7 @@ class Cadastro(Interface):
         soquete.send(codificar(PedidoCadastroUsuario(str(self.entry_name.get()).strip(),
                                                      str(self.entry_pswd.get()).strip())))
 
-        resultado = descodificar(soquete.recv(BUFFER))
-
-        if resultado:
+        if descodificar(soquete.recv(BUFFER)):
             showinfo(title="AVISO", message="Usuario cadastrado com sucesso")
         else:
             showerror(title="ERRO", message="Usuario ja cadastrado")
@@ -201,10 +199,12 @@ class MenuPrincipal(Interface):
         MenuGrupos(self._tk, self.dados_cliente, self.soquete)
 
     def __acao_btn_exit(self):
-        if self.soquete:
+        self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
+
+        if descodificar(self.soquete.recv(BUFFER)):
             self.soquete.close()
-        self.main_frame.destroy()
-        Login(self._tk)
+            self.main_frame.destroy()
+            Login(self._tk)
 
 
 class MenuUsuarios(Interface):
@@ -554,15 +554,12 @@ class CadastroGrupo(Interface):
         resultado = descodificar(self.soquete.recv(BUFFER))
 
         if resultado:
-            showinfo(title="AVISO", message="Usuario cadastrado com sucesso")
+            showinfo(title="AVISO", message="Grupo cadastrado com sucesso")
         else:
-            showerror(title="ERRO", message="Usuario ja cadastrado")
+            showerror(title="ERRO", message="Grupo ja cadastrado")
 
         self.entry_name.delete(0, "end")
 
     def __acao_btn_back(self):
         self.main_frame.destroy()
         MenuGrupos(self._tk, self.dados_cliente, self.soquete)
-
-
-
