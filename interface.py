@@ -397,6 +397,11 @@ class ChatUsuario(Interface):
                                command=self.__enviar_mensagem)
         self.btn_send.grid(row=2, column=2)
 
+        self.soquete.send(codificar(PedidoMensagensPrivadasArquivadas(self.dados_cliente, self.destinatario)))
+
+        for mensagem in descodificar(self.soquete.recv(BUFFER)):
+            self.__mostrar_mensagem(MensagemPrivada.MensagemPrivada_from_dict(descodificar(mensagem)))
+
         self.receber_mensagens = Thread(target=self.__receber_mensagens)
         self.receber_mensagens.start()
 
@@ -464,6 +469,11 @@ class ChatGrupo(Interface):
         self.btn_send = Button(self.main_frame, text="ENVIAR", font=FONTE_CHAT_BTN_ENVIAR, padx=50, pady=20,
                                command=self.__enviar_mensagem)
         self.btn_send.grid(row=2, column=2)
+
+        self.soquete.send(codificar(PedidoMensagensGrupoArquivadas(self.dados_cliente, self.grupo)))
+
+        for mensagem in descodificar(self.soquete.recv(BUFFER)):
+            self.__mostrar_mensagem(MensagemGrupo.MensagemGrupo_from_dict(descodificar(mensagem)))
 
         self.receber_mensagens = Thread(target=self.__receber_mensagens)
         self.receber_mensagens.start()

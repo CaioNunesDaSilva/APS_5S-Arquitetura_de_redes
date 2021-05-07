@@ -12,6 +12,8 @@ class TipoPedido(Enum):
     MENSSAGEM_GRUPO = 5
     CADASTRO_GRUPO = 6
     DESCONECTAR = 7
+    MENSAGEMS_PRIVADAS_ARQUIVADAS = 8
+    MENSAGEMS_GRUPO_ARQUIVADAS = 9
 
     def to_json(self):
         return str(self.value)
@@ -225,6 +227,38 @@ class PedidoDesconectar(Pedido):
         return PedidoDesconectar(Usuario.Usuario_from_dict(descodificar(dic["remetente"])))
 
 
+class PedidoMensagensPrivadasArquivadas(Pedido):
+    def __init__(self, remetente: Usuario, chat: str):
+        self.remetente = remetente
+        self.chat = chat
+        super().__init__(TipoPedido.MENSAGEMS_PRIVADAS_ARQUIVADAS)
+
+    def to_json(self):
+        self.remetente = self.remetente.to_json()
+        return super().to_json()
+
+    @staticmethod
+    def PedidoMensagensPrivadasArquivadas_from_dict(dic):
+        return PedidoMensagensPrivadasArquivadas(Usuario.Usuario_from_dict(descodificar(dic["remetente"])),
+                                                 dic["chat"])
+
+
+class PedidoMensagensGrupoArquivadas(Pedido):
+    def __init__(self, remetente: Usuario, grupo: str):
+        self.remetente = remetente
+        self.grupo = grupo
+        super().__init__(TipoPedido.MENSAGEMS_GRUPO_ARQUIVADAS)
+
+    def to_json(self):
+        self.remetente = self.remetente.to_json()
+        return super().to_json()
+
+    @staticmethod
+    def PedidoMensagensGrupoArquivadas_from_dict(dic):
+        return PedidoMensagensGrupoArquivadas(Usuario.Usuario_from_dict(descodificar(dic["remetente"])),
+                                                 dic["grupo"])
+
+
 def Pedido_from_dic(dic: dict):
     if isinstance(dic, str):
         dic = loads(dic)
@@ -246,6 +280,10 @@ def Pedido_from_dic(dic: dict):
         return PedidoCadastroGrupo.PedidoCadastroGrupo_from_dict(dic)
     elif tipo == TipoPedido.DESCONECTAR:
         return PedidoDesconectar.PedidoDesconectar_from_dict(dic)
+    elif tipo == TipoPedido.MENSAGEMS_PRIVADAS_ARQUIVADAS:
+        return PedidoMensagensPrivadasArquivadas.PedidoMensagensPrivadasArquivadas_from_dict(dic)
+    elif tipo == TipoPedido.MENSAGEMS_GRUPO_ARQUIVADAS:
+        return PedidoMensagensGrupoArquivadas.PedidoMensagensGrupoArquivadas_from_dict(dic)
     else:
         return None
 

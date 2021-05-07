@@ -2,6 +2,8 @@ import mysql.connector as MySQL
 
 from auxiliar import Usuario
 from auxiliar import Grupo
+from auxiliar import MensagemPrivada
+from auxiliar import MensagemGrupo
 from constantes import BANCO_DE_DADOS_ENDERECO
 from constantes import BANCO_DE_DADOS_NOME
 from constantes import BANCO_DE_DADOS_USUARIO
@@ -60,4 +62,16 @@ def debug_login(nome: str, senha: str):
 def debug_carregar_grupos():
     return [Grupo(1, "grupo1", [Usuario(1, "a"), Usuario(2, "b")], Usuario(1, "a")),
             Grupo(2, "grupo2", [Usuario(1, "a")], Usuario(1, "a"))]
+
+
+# TODO deletar funcao de debug
+def debug_mensagens_privadas_arquivadas(chat: str, destinatario: str):
+    if chat == "teste1" and destinatario == "a":
+        return [MensagemPrivada(Usuario(0, "teste1"), "hello", "a"), MensagemPrivada(Usuario(0, "teste1"), "world", "a")]
+
+
+# TODO deletar funcao de debug
+def debug_mensagens_grupo_arquivadas(grupo: str, usuario: str):
+    if grupo == "grupo1" and usuario == "a":
+        return [MensagemGrupo(Usuario(0, "teste1"), "hello", "grupo1"), MensagemGrupo(Usuario(0, "teste2"), "world", "grupo1")]
 

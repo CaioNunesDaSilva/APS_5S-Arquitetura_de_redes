@@ -7,10 +7,7 @@ from auxiliar import *
 from constantes import SOCKET_ENDERECO
 from constantes import SOCKET_PORTA
 from constantes import BUFFER
-from db import debug_cadastrar
-from db import debug_login
-from db import debug_carregar_grupos
-from db import debug_cadastrar_grupo
+from db import *
 
 
 def aceitar_conexao():
@@ -21,6 +18,8 @@ def aceitar_conexao():
 
 
 def controlador_cliente(conexao, endereco):
+    global GRUPOS
+
     while True:
         pedido = descodificar(conexao.recv(BUFFER))
 
@@ -100,6 +99,16 @@ def controlador_cliente(conexao, endereco):
 
                 conexao.close()
                 break
+
+            elif pedido.tipo == TipoPedido.MENSAGEMS_PRIVADAS_ARQUIVADAS:
+                print(f"PEDIDO DE ENVIO DE MENSAGENS PRIVADAS ARQUIVADAS POR {pedido.remetente.nome} NA CONEXAO {conexao}")
+
+                conexao.send(codificar(debug_mensagens_privadas_arquivadas(pedido.chat, pedido.remetente.nome)))
+
+            elif pedido.tipo == TipoPedido.MENSAGEMS_GRUPO_ARQUIVADAS:
+                print(f"PEDIDO DE ENVIO DE MENSAGENS DE GRUPO ARQUIVADAS POR {pedido.remetente.nome} NA CONEXAO {conexao}")
+
+                conexao.send(codificar(debug_mensagens_grupo_arquivadas(pedido.grupo, pedido.remetente.nome)))
 
         else:
             conexao.send(codificar(None))
