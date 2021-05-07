@@ -157,6 +157,7 @@ class Cadastro(Interface):
         soquete.close()
 
         self.entry_name.delete(0, "end")
+        self.entry_pswd.delete(0, "end")
 
 
 class MenuPrincipal(Interface):
@@ -399,8 +400,11 @@ class ChatUsuario(Interface):
 
         self.soquete.send(codificar(PedidoMensagensPrivadasArquivadas(self.dados_cliente, self.destinatario)))
 
-        for mensagem in descodificar(self.soquete.recv(BUFFER)):
-            self.__mostrar_mensagem(MensagemPrivada.MensagemPrivada_from_dict(descodificar(mensagem)))
+        mensagens_arquivadas = descodificar(self.soquete.recv(BUFFER))
+
+        if mensagens_arquivadas:
+            for mensagem in mensagens_arquivadas:
+                self.__mostrar_mensagem(MensagemPrivada.MensagemPrivada_from_dict(descodificar(mensagem)))
 
         self.receber_mensagens = Thread(target=self.__receber_mensagens)
         self.receber_mensagens.start()
@@ -472,8 +476,11 @@ class ChatGrupo(Interface):
 
         self.soquete.send(codificar(PedidoMensagensGrupoArquivadas(self.dados_cliente, self.grupo)))
 
-        for mensagem in descodificar(self.soquete.recv(BUFFER)):
-            self.__mostrar_mensagem(MensagemGrupo.MensagemGrupo_from_dict(descodificar(mensagem)))
+        mensagens_arquivadas = descodificar(self.soquete.recv(BUFFER))
+
+        if mensagens_arquivadas:
+            for mensagem in mensagens_arquivadas:
+                self.__mostrar_mensagem(MensagemGrupo.MensagemGrupo_from_dict(descodificar(mensagem)))
 
         self.receber_mensagens = Thread(target=self.__receber_mensagens)
         self.receber_mensagens.start()
@@ -569,6 +576,7 @@ class CadastroGrupo(Interface):
             showerror(title="ERRO", message="Grupo ja cadastrado")
 
         self.entry_name.delete(0, "end")
+        self.entry_members.delete(0, "end")
 
     def __acao_btn_back(self):
         self.main_frame.destroy()
