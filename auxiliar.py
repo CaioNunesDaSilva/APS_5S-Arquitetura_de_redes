@@ -15,52 +15,49 @@ class TipoPedido(Enum):
     MENSAGEMS_PRIVADAS_ARQUIVADAS = 8
     MENSAGEMS_GRUPO_ARQUIVADAS = 9
 
-    def to_json(self):
+    def to_json(self) -> str:
         return str(self.value)
 
-    @staticmethod
-    def from_str(string: str):
-        return TipoPedido(int(string))
+    @classmethod
+    def from_str(cls, string: str) -> 'TipoPedido':
+        return cls(int(string))
 
 
 class JSONserializable:
-    def to_json(self):
-        return dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+    def to_json(self) -> str:
+        return dumps(self, default=lambda o: o.__dict__, indent=4)
 
 
-class ObjetoDB:
-    def __init__(self, codigo: int, nome: str, ):
+class Entidade:
+    def __init__(self, codigo: int, nome: str):
         self.codigo = codigo
         self.nome = nome
 
 
-class Usuario(ObjetoDB, JSONserializable):
-    def __init__(self, codigo: int, nome: str):
-        super().__init__(codigo, nome)
-
-    def to_json(self):
+class Usuario(Entidade, JSONserializable):
+    def to_json(self) -> str:
         self.codigo = str(self.codigo)
         return super().to_json()
 
-    def __eq__(self, other):
-        return self.nome == other.nome
+    def __eq__(self, other: 'Usuario'):
+        return self.codigo == other.codigo
 
-    @staticmethod
-    def Usuario_from_dict(dic):
-        return Usuario(int(dic["codigo"]), dic["nome"])
+    @classmethod
+    def Usuario_from_dict(cls, dic: dict) -> 'Usuario':
+        return cls(int(dic["codigo"]), dic["nome"])
 
-    @staticmethod
-    def clonar(obj):
-        return Usuario(obj.codigo, obj.nome)
+    @classmethod
+    def clonar(cls, usuario: 'Usuario') -> 'Usuario':
+        return cls(int(usuario.codigo), usuario.nome)
 
 
-class Grupo(ObjetoDB, JSONserializable):
+class Grupo(Entidade, JSONserializable):
     def __init__(self, codigo: int, nome: str, membros: [Usuario], dono: Usuario):
         self.membros = membros
         self.dono = dono
         super().__init__(codigo, nome)
 
-    def to_json(self):
+    def to_json(self) -> str:
         self.codigo = str(self.codigo)
 
         for indice, membro in enumerate(self.membros):
@@ -70,21 +67,21 @@ class Grupo(ObjetoDB, JSONserializable):
 
         return super().to_json()
 
-    def __eq__(self, other):
-        return self.nome == other.nome
+    def __eq__(self, other: 'Grupo'):
+        return self.codigo == other.codigo
 
-    @staticmethod
-    def Grupo_from_dict(dic):
+    @classmethod
+    def Grupo_from_dict(cls, dic: dict) -> 'Grupo':
         membros = []
         for membro in dic["membros"]:
-            membros.append(Usuario.Usuario_from_dict(descodificar(membro)))
+            membros.append(descodificar(membro, Usuario))
 
-        return Grupo(dic["codigo"], dic["nome"], membros, Usuario.Usuario_from_dict(descodificar(dic["dono"])))
+        return cls(int(dic["codigo"]), dic["nome"], membros, descodificar(dic["dono"], Usuario))
 
-    @staticmethod
-    def clonar(obj):
+    @classmethod
+    def clonar(cls, grupo: 'Grupo') -> 'Grupo':
         membros = []
-        for membro in obj.membros:
+        for membro in grupo.membros:
             if isinstance(membro, str):
                 membro = loads(membro)
 
@@ -93,14 +90,14 @@ class Grupo(ObjetoDB, JSONserializable):
 
             membros.append(Usuario.clonar(membro))
 
-        return Grupo(obj.codigo, obj.nome, membros, Usuario.clonar(obj.dono))
+        return cls(int(grupo.codigo), grupo.nome, membros, Usuario.clonar(grupo.dono))
 
 
 class Pedido(JSONserializable):
     def __init__(self, tipo: TipoPedido):
         self.tipo = tipo
 
-    def to_json(self):
+    def to_json(self) -> str:
         self.tipo = self.tipo.to_json()
         return super().to_json()
 
@@ -111,9 +108,9 @@ class PedidoCadastroUsuario(Pedido):
         self.senha = senha
         super().__init__(TipoPedido.CADASTRO_USUARIO)
 
-    @staticmethod
-    def PedidoCadastroUsuario_from_dict(dic):
-        return PedidoCadastroUsuario(dic["nome"], dic["senha"])
+    @classmethod
+    def PedidoCadastroUsuario_from_dict(cls, dic: dict) -> 'PedidoCadastroUsuario':
+        return cls(dic["nome"], dic["senha"])
 
 
 class PedidoLogin(Pedido):
@@ -122,9 +119,9 @@ class PedidoLogin(Pedido):
         self.senha = senha
         super().__init__(TipoPedido.LOGIN)
 
-    @staticmethod
-    def PedidoLogin_from_dict(dic):
-        return PedidoLogin(dic["nome"], dic["senha"])
+    @classmethod
+    def PedidoLogin_from_dict(cls, dic: dict) -> 'PedidoLogin':
+        return cls(dic["nome"], dic["senha"])
 
 
 class PedidoAtualizarListaClientes(Pedido):
@@ -132,13 +129,13 @@ class PedidoAtualizarListaClientes(Pedido):
         self.remetente = remetente
         super().__init__(TipoPedido.ATUALIZAR_LISTA_CLIENTES)
 
-    def to_json(self):
+    def to_json(self) -> str:
         self.remetente = self.remetente.to_json()
         return super().to_json()
 
-    @staticmethod
-    def PedidoAtualizarListaClientes_from_dict(dic):
-        return PedidoAtualizarListaClientes(Usuario.Usuario_from_dict(descodificar(dic["remetente"])))
+    @classmethod
+    def PedidoAtualizarListaClientes_from_dict(cls, dic: dict) -> 'PedidoAtualizarListaClientes':
+        return cls(descodificar(dic["remetente"], Usuario))
 
 
 class PedidoAtualizarListaGrupos(Pedido):
@@ -146,13 +143,73 @@ class PedidoAtualizarListaGrupos(Pedido):
         self.remetente = remetente
         super().__init__(TipoPedido.ATUALIZAR_LISTA_GRUPOS)
 
-    def to_json(self):
+    def to_json(self) -> str:
         self.remetente = self.remetente.to_json()
         return super().to_json()
 
-    @staticmethod
-    def PedidoAtualizarListaGrupos_from_dict(dic):
-        return PedidoAtualizarListaGrupos(Usuario.Usuario_from_dict(descodificar(dic["remetente"])))
+    @classmethod
+    def PedidoAtualizarListaGrupos_from_dict(cls, dic: dict) -> 'PedidoAtualizarListaGrupos':
+        return cls(descodificar(dic["remetente"], Usuario))
+
+
+class PedidoCadastroGrupo(Pedido):
+    def __init__(self, remetente: Usuario, nome: str, integrantes: [str]):
+        self.remetente = remetente
+        self.nome = nome
+        self.integrantes = integrantes
+        super().__init__(TipoPedido.CADASTRO_GRUPO)
+
+    def to_json(self) -> str:
+        self.remetente = self.remetente.to_json()
+        return super().to_json()
+
+    @classmethod
+    def PedidoCadastroGrupo_from_dict(cls, dic: dict) -> 'PedidoCadastroGrupo':
+        return cls(descodificar(dic["remetente"], Usuario), dic["nome"], dic["integrantes"])
+
+
+class PedidoDesconectar(Pedido):
+    def __init__(self, remetente: Usuario):
+        self.remetente = remetente
+        super().__init__(TipoPedido.DESCONECTAR)
+
+    def to_json(self) -> str:
+        self.remetente = self.remetente.to_json()
+        return super().to_json()
+
+    @classmethod
+    def PedidoDesconectar_from_dict(cls, dic: dict) -> 'PedidoDesconectar':
+        return cls(descodificar(dic["remetente"], Usuario))
+
+
+class PedidoMensagensPrivadasArquivadas(Pedido):
+    def __init__(self, remetente: Usuario, chat: str):
+        self.remetente = remetente
+        self.chat = chat
+        super().__init__(TipoPedido.MENSAGEMS_PRIVADAS_ARQUIVADAS)
+
+    def to_json(self) -> str:
+        self.remetente = self.remetente.to_json()
+        return super().to_json()
+
+    @classmethod
+    def PedidoMensagensPrivadasArquivadas_from_dict(cls, dic: dict) -> 'PedidoMensagensPrivadasArquivadas':
+        return cls(descodificar(dic["remetente"], Usuario), dic["chat"])
+
+
+class PedidoMensagensGrupoArquivadas(Pedido):
+    def __init__(self, remetente: Usuario, grupo: str):
+        self.remetente = remetente
+        self.grupo = grupo
+        super().__init__(TipoPedido.MENSAGEMS_GRUPO_ARQUIVADAS)
+
+    def to_json(self) -> str:
+        self.remetente = self.remetente.to_json()
+        return super().to_json()
+
+    @classmethod
+    def PedidoMensagensGrupoArquivadas_from_dict(cls, dic: dict) -> 'PedidoMensagensGrupoArquivadas':
+        return cls(descodificar(dic["remetente"], Usuario), dic["grupo"])
 
 
 class MensagemPrivada(Pedido):
@@ -162,15 +219,13 @@ class MensagemPrivada(Pedido):
         self.destinatario = destinatario
         super().__init__(TipoPedido.MENSSAGEM_PRIVADA)
 
-    def to_json(self):
+    def to_json(self) -> str:
         self.remetente = self.remetente.to_json()
         return super().to_json()
 
-    @staticmethod
-    def MensagemPrivada_from_dict(dic):
-        return MensagemPrivada(Usuario.Usuario_from_dict(descodificar(dic["remetente"])),
-                               dic["mensagem"],
-                               dic["destinatario"])
+    @classmethod
+    def MensagemPrivada_from_dict(cls, dic: dict) -> 'MensagemPrivada':
+        return cls(descodificar(dic["remetente"], Usuario), dic["mensagem"], dic["destinatario"])
 
 
 class MensagemGrupo(Pedido):
@@ -180,142 +235,130 @@ class MensagemGrupo(Pedido):
         self.grupo = grupo
         super().__init__(TipoPedido.MENSSAGEM_GRUPO)
 
-    def to_json(self):
+    def to_json(self) -> str:
         self.remetente = self.remetente.to_json()
         return super().to_json()
 
-    @staticmethod
-    def clonar(obj):
-        return MensagemGrupo(obj.remetente, obj.mensagem, obj.grupo)
+    @classmethod
+    def clonar(cls, mensagem_grupo: 'MensagemGrupo') -> 'MensagemGrupo':
+        return cls(mensagem_grupo.remetente, mensagem_grupo.mensagem, mensagem_grupo.grupo)
 
-    @staticmethod
-    def MensagemGrupo_from_dict(dic):
-        return MensagemGrupo(Usuario.Usuario_from_dict(descodificar(dic["remetente"])),
-                             dic["mensagem"],
-                             dic["grupo"])
+    @classmethod
+    def MensagemGrupo_from_dict(cls, dic: dict) -> 'MensagemGrupo':
+        return cls(descodificar(dic["remetente"], Usuario), dic["mensagem"], dic["grupo"])
 
 
-class PedidoCadastroGrupo(Pedido):
-    def __init__(self, remetente: Usuario, nome: str, integrantes):
-        self.remetente = remetente
-        self.nome = nome
-        self.integrantes = integrantes
-        super().__init__(TipoPedido.CADASTRO_GRUPO)
+def codificar(dados) -> bytes:
+    if isinstance(dados, JSONserializable):
+        return dados.to_json().encode()
 
-    def to_json(self):
-        self.remetente = self.remetente.to_json()
-        return super().to_json()
+    elif isinstance(dados, dict):
+        for chave, valor in dados.items():
+            if isinstance(valor, JSONserializable):
+                dados[chave] = valor.to_json()
+        return dumps(dados).encode()
 
-    @staticmethod
-    def PedidoCadastroGrupo_from_dict(dic):
-        return PedidoCadastroGrupo(Usuario.Usuario_from_dict(descodificar(dic["remetente"])),
-                                   dic["nome"],
-                                   dic["integrantes"])
+    elif isinstance(dados, list):
+        for indice, item in enumerate(dados):
+            if isinstance(item, JSONserializable):
+                dados[indice] = item.to_json()
+        return dumps(dados).encode()
 
+    elif isinstance(dados, str):
+        return dados.encode()
 
-class PedidoDesconectar(Pedido):
-    def __init__(self, remetente: Usuario):
-        self.remetente = remetente
-        super().__init__(TipoPedido.DESCONECTAR)
-
-    def to_json(self):
-        self.remetente = self.remetente.to_json()
-        return super().to_json()
-
-    @staticmethod
-    def PedidoDesconectar_from_dict(dic):
-        return PedidoDesconectar(Usuario.Usuario_from_dict(descodificar(dic["remetente"])))
-
-
-class PedidoMensagensPrivadasArquivadas(Pedido):
-    def __init__(self, remetente: Usuario, chat: str):
-        self.remetente = remetente
-        self.chat = chat
-        super().__init__(TipoPedido.MENSAGEMS_PRIVADAS_ARQUIVADAS)
-
-    def to_json(self):
-        self.remetente = self.remetente.to_json()
-        return super().to_json()
-
-    @staticmethod
-    def PedidoMensagensPrivadasArquivadas_from_dict(dic):
-        return PedidoMensagensPrivadasArquivadas(Usuario.Usuario_from_dict(descodificar(dic["remetente"])),
-                                                 dic["chat"])
-
-
-class PedidoMensagensGrupoArquivadas(Pedido):
-    def __init__(self, remetente: Usuario, grupo: str):
-        self.remetente = remetente
-        self.grupo = grupo
-        super().__init__(TipoPedido.MENSAGEMS_GRUPO_ARQUIVADAS)
-
-    def to_json(self):
-        self.remetente = self.remetente.to_json()
-        return super().to_json()
-
-    @staticmethod
-    def PedidoMensagensGrupoArquivadas_from_dict(dic):
-        return PedidoMensagensGrupoArquivadas(Usuario.Usuario_from_dict(descodificar(dic["remetente"])),
-                                                 dic["grupo"])
-
-
-def Pedido_from_dic(dic: dict):
-    if isinstance(dic, str):
-        dic = loads(dic)
-
-    tipo = TipoPedido.from_str(dic["tipo"])
-    if tipo == TipoPedido.CADASTRO_USUARIO:
-        return PedidoCadastroUsuario.PedidoCadastroUsuario_from_dict(dic)
-    elif tipo == TipoPedido.LOGIN:
-        return PedidoLogin.PedidoLogin_from_dict(dic)
-    elif tipo == TipoPedido.ATUALIZAR_LISTA_CLIENTES:
-        return PedidoAtualizarListaClientes.PedidoAtualizarListaClientes_from_dict(dic)
-    elif tipo == TipoPedido.ATUALIZAR_LISTA_GRUPOS:
-        return PedidoAtualizarListaGrupos.PedidoAtualizarListaGrupos_from_dict(dic)
-    elif tipo == TipoPedido.MENSSAGEM_PRIVADA:
-        return MensagemPrivada.MensagemPrivada_from_dict(dic)
-    elif tipo == TipoPedido.MENSSAGEM_GRUPO:
-        return MensagemGrupo.MensagemGrupo_from_dict(dic)
-    elif tipo == TipoPedido.CADASTRO_GRUPO:
-        return PedidoCadastroGrupo.PedidoCadastroGrupo_from_dict(dic)
-    elif tipo == TipoPedido.DESCONECTAR:
-        return PedidoDesconectar.PedidoDesconectar_from_dict(dic)
-    elif tipo == TipoPedido.MENSAGEMS_PRIVADAS_ARQUIVADAS:
-        return PedidoMensagensPrivadasArquivadas.PedidoMensagensPrivadasArquivadas_from_dict(dic)
-    elif tipo == TipoPedido.MENSAGEMS_GRUPO_ARQUIVADAS:
-        return PedidoMensagensGrupoArquivadas.PedidoMensagensGrupoArquivadas_from_dict(dic)
     else:
+        return dumps(dados).encode()
+
+
+def descodificar(dados, classe):
+    if isinstance(dados, bytes):
+        dados = dados.decode()
+
+    if dados is None:
         return None
 
+    elif classe == str:
+        return dados
 
-def codificar(obj):
-    if isinstance(obj, JSONserializable):
-        return obj.to_json().encode()
+    elif classe == int:
+        return int(dados)
 
-    elif isinstance(obj, dict):
-        for chave, valor in obj.items():
-            if isinstance(valor, JSONserializable):
-                obj[chave] = valor.to_json()
-        return dumps(obj).encode()
+    elif classe == bool:
+        return bool(loads(dados))
 
-    elif isinstance(obj, list):
-        for indice, item in enumerate(obj):
-            if isinstance(item, JSONserializable):
-                obj[indice] = item.to_json()
-        return dumps(obj).encode()
+    elif classe == list:
+        return list(loads(dados))
 
-    elif isinstance(obj, str):
-        return obj.encode()
+    elif classe == dict:
+        return dict(loads(dados))
 
-    else:
-        return dumps(obj).encode()
+    elif classe == Usuario:
+        return Usuario.Usuario_from_dict(loads(dados))
 
+    elif classe == [Usuario]:
+        lista_usuarios = []
+        for usuario in descodificar(dados, list):
+            lista_usuarios.append(descodificar(usuario, Usuario))
+        return lista_usuarios
 
-def descodificar(obj):
-    if obj:
-        if isinstance(obj, bytes):
-            obj = obj.decode()
-        return loads(obj)
+    elif classe == Grupo:
+        return Grupo.Grupo_from_dict(loads(dados))
+
+    elif classe == [Grupo]:
+        lista_grupo = []
+        for grupo in descodificar(dados, list):
+            lista_grupo.append(descodificar(grupo, Grupo))
+        return lista_grupo
+
+    elif classe == Pedido:
+        dic = loads(dados)
+
+        if dic:
+            tipo = TipoPedido.from_str(dic["tipo"])
+
+            if tipo == TipoPedido.CADASTRO_USUARIO:
+                return PedidoCadastroUsuario.PedidoCadastroUsuario_from_dict(dic)
+            elif tipo == TipoPedido.LOGIN:
+                return PedidoLogin.PedidoLogin_from_dict(dic)
+
+            elif tipo == TipoPedido.ATUALIZAR_LISTA_CLIENTES:
+                return PedidoAtualizarListaClientes.PedidoAtualizarListaClientes_from_dict(dic)
+
+            elif tipo == TipoPedido.ATUALIZAR_LISTA_GRUPOS:
+                return PedidoAtualizarListaGrupos.PedidoAtualizarListaGrupos_from_dict(dic)
+
+            elif tipo == TipoPedido.CADASTRO_GRUPO:
+                return PedidoCadastroGrupo.PedidoCadastroGrupo_from_dict(dic)
+
+            elif tipo == TipoPedido.DESCONECTAR:
+                return PedidoDesconectar.PedidoDesconectar_from_dict(dic)
+
+            elif tipo == TipoPedido.MENSAGEMS_PRIVADAS_ARQUIVADAS:
+                return PedidoMensagensPrivadasArquivadas.PedidoMensagensPrivadasArquivadas_from_dict(dic)
+
+            elif tipo == TipoPedido.MENSAGEMS_GRUPO_ARQUIVADAS:
+                return PedidoMensagensGrupoArquivadas.PedidoMensagensGrupoArquivadas_from_dict(dic)
+
+            elif tipo == TipoPedido.MENSSAGEM_PRIVADA:
+                return MensagemPrivada.MensagemPrivada_from_dict(dic)
+
+            elif tipo == TipoPedido.MENSSAGEM_GRUPO:
+                return MensagemGrupo.MensagemGrupo_from_dict(dic)
+        else:
+            return None
+
+    elif classe == [MensagemPrivada] or classe == [MensagemGrupo]:
+        dados = loads(dados)
+
+        if dados:
+            lista_mensagens = []
+            for mensagen in dados:
+                lista_mensagens.append(descodificar(mensagen, Pedido))
+            return lista_mensagens
+        else:
+            return None
+
     else:
         return None
 
@@ -323,4 +366,3 @@ def descodificar(obj):
 # TODO delete debug function
 def debug_obj_check(obj):
     print(obj, type(obj))
-

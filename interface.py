@@ -87,8 +87,7 @@ class Login(Interface):
 
         soquete.send(codificar(PedidoLogin(self.entry_name.get().strip(), self.entry_pswd.get().strip())))
 
-        dados_cliente = descodificar(soquete.recv(BUFFER))
-        dados_cliente = Usuario.Usuario_from_dict(dados_cliente)
+        dados_cliente = descodificar(soquete.recv(BUFFER), Usuario)
 
         if dados_cliente:
             self.main_frame.destroy()
@@ -149,7 +148,7 @@ class Cadastro(Interface):
         soquete.send(codificar(PedidoCadastroUsuario(str(self.entry_name.get()).strip(),
                                                      str(self.entry_pswd.get()).strip())))
 
-        if descodificar(soquete.recv(BUFFER)):
+        if descodificar(soquete.recv(BUFFER), bool):
             showinfo(title="AVISO", message="Usuario cadastrado com sucesso")
         else:
             showerror(title="ERRO", message="Usuario ja cadastrado")
@@ -202,7 +201,7 @@ class MenuPrincipal(Interface):
     def __acao_btn_exit(self):
         self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
 
-        if descodificar(self.soquete.recv(BUFFER)):
+        if descodificar(self.soquete.recv(BUFFER), bool):
             self.soquete.close()
             self.main_frame.destroy()
             Login(self._tk)
@@ -251,12 +250,7 @@ class MenuUsuarios(Interface):
     def __atualizar_usuarios_online(self):
         self.soquete.send(codificar(PedidoAtualizarListaClientes(self.dados_cliente)))
 
-        lista_usuarios = descodificar(self.soquete.recv(BUFFER))
-
-        for indice, usuario in enumerate(lista_usuarios):
-            lista_usuarios[indice] = Usuario.Usuario_from_dict(descodificar(usuario))
-
-        return lista_usuarios
+        return descodificar(self.soquete.recv(BUFFER), [Usuario])
 
     def __acao_btn_refresh(self):
         self.usuarios_online = self.__atualizar_usuarios_online()
@@ -330,12 +324,7 @@ class MenuGrupos(Interface):
     def __atualizar_grupos_participantes(self):
         self.soquete.send(codificar(PedidoAtualizarListaGrupos(self.dados_cliente)))
 
-        lista_grupos = descodificar(self.soquete.recv(BUFFER))
-
-        for indice, grupo in enumerate(lista_grupos):
-            lista_grupos[indice] = Grupo.Grupo_from_dict(descodificar(grupo))
-
-        return lista_grupos
+        return descodificar(self.soquete.recv(BUFFER), [Grupo])
 
     def __acao_botoes_grupos(self, grupo):
         self.main_frame.destroy()
@@ -400,11 +389,11 @@ class ChatUsuario(Interface):
 
         self.soquete.send(codificar(PedidoMensagensPrivadasArquivadas(self.dados_cliente, self.destinatario)))
 
-        mensagens_arquivadas = descodificar(self.soquete.recv(BUFFER))
+        mensagens_arquivadas = descodificar(self.soquete.recv(BUFFER), [MensagemPrivada])
 
         if mensagens_arquivadas:
             for mensagem in mensagens_arquivadas:
-                self.__mostrar_mensagem(MensagemPrivada.MensagemPrivada_from_dict(descodificar(mensagem)))
+                self.__mostrar_mensagem(mensagem)
 
         self.receber_mensagens = Thread(target=self.__receber_mensagens)
         self.receber_mensagens.start()
@@ -427,7 +416,7 @@ class ChatUsuario(Interface):
 
     def __receber_mensagens(self):
         while True:
-            msg = descodificar(self.soquete.recv(BUFFER))
+            msg = descodificar(self.soquete.recv(BUFFER), MensagemPrivada)
             if msg:
                 msg = MensagemPrivada.MensagemPrivada_from_dict(msg)
                 self.__mostrar_mensagem(msg)
@@ -476,11 +465,11 @@ class ChatGrupo(Interface):
 
         self.soquete.send(codificar(PedidoMensagensGrupoArquivadas(self.dados_cliente, self.grupo)))
 
-        mensagens_arquivadas = descodificar(self.soquete.recv(BUFFER))
+        mensagens_arquivadas = descodificar(self.soquete.recv(BUFFER), [MensagemGrupo])
 
         if mensagens_arquivadas:
             for mensagem in mensagens_arquivadas:
-                self.__mostrar_mensagem(MensagemGrupo.MensagemGrupo_from_dict(descodificar(mensagem)))
+                self.__mostrar_mensagem(mensagem)
 
         self.receber_mensagens = Thread(target=self.__receber_mensagens)
         self.receber_mensagens.start()
@@ -503,7 +492,7 @@ class ChatGrupo(Interface):
 
     def __receber_mensagens(self):
         while True:
-            msg = descodificar(self.soquete.recv(BUFFER))
+            msg = descodificar(self.soquete.recv(BUFFER), MensagemGrupo)
             if msg:
                 msg = MensagemGrupo.MensagemGrupo_from_dict(msg)
                 self.__mostrar_mensagem(msg)
@@ -568,7 +557,7 @@ class CadastroGrupo(Interface):
                                                         str(self.entry_name.get()).strip(),
                                                         str(self.entry_members.get()).strip().split(","))))
 
-        resultado = descodificar(self.soquete.recv(BUFFER))
+        resultado = descodificar(self.soquete.recv(BUFFER), bool)
 
         if resultado:
             showinfo(title="AVISO", message="Grupo cadastrado com sucesso")

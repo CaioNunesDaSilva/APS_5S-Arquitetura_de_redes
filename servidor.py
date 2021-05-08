@@ -21,11 +21,9 @@ def controlador_cliente(conexao, endereco):
     global GRUPOS
 
     while True:
-        pedido = descodificar(conexao.recv(BUFFER))
+        pedido = descodificar(conexao.recv(BUFFER), Pedido)
 
         if pedido:
-
-            pedido = Pedido_from_dic(pedido)
 
             if pedido.tipo == TipoPedido.CADASTRO_USUARIO:
                 print(f"PEDIDO DE CADASTRO DE: {pedido.nome} NA A CONEXAO {conexao}")
@@ -42,7 +40,7 @@ def controlador_cliente(conexao, endereco):
                 if cliente:
                     CLIENTES.append([cliente, conexao])
 
-                conexao.send(codificar(cliente))
+                conexao.send(codificar(Usuario.clonar(cliente)))
 
             elif pedido.tipo == TipoPedido.ATUALIZAR_LISTA_CLIENTES:
                 print(f"PEDIDO DA LISTA DE USUARIOS PARA {pedido.remetente.nome} NA A CONEXAO {conexao}")
