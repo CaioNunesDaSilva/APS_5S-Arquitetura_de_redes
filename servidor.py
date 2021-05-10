@@ -68,7 +68,9 @@ def controlador_cliente(conexao, endereco):
 
                 for indice, cliente in enumerate(CLIENTES):
                     if pedido.destinatario == cliente.nome:
-                        CONEXOES[indice].send(codificar(pedido))
+                        pedido = codificar(pedido)
+                        CONEXOES[indice].send(pedido)
+                        conexao.send(pedido)
                         break
 
                 else:
@@ -82,8 +84,7 @@ def controlador_cliente(conexao, endereco):
                     if grupo.nome == pedido.grupo:
                         for cliente in grupo.membros:
                             if cliente in CLIENTES:
-                                if cliente != pedido.remetente:
-                                    CONEXOES[CLIENTES.index(cliente)].send(codificar(MensagemGrupo.clonar(pedido)))
+                                CONEXOES[CLIENTES.index(cliente)].send(codificar(MensagemGrupo.clonar(pedido)))
                             else:
                                 usuarios_nao_disponiveis.append(cliente)
 
@@ -101,12 +102,9 @@ def controlador_cliente(conexao, endereco):
             elif pedido.tipo == TipoPedido.DESCONECTAR:
                 print(f"PEDIDO DE DESCONEXAO POR {pedido.remetente.nome} NA CONEXAO {conexao}")
 
-                usuario_desconetado = None
                 for indice, cliente in enumerate(CLIENTES):
                     if pedido.remetente == cliente:
-                        usuario_desconetado = CLIENTES.pop(indice)
-
-                conexao.send(codificar(bool(usuario_desconetado)))
+                        CLIENTES.pop(indice)
 
                 conexao.close()
                 break

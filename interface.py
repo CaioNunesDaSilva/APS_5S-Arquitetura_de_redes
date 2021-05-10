@@ -1,3 +1,4 @@
+import json.decoder
 from abc import ABC
 from abc import abstractmethod
 from tkinter import *
@@ -89,18 +90,41 @@ class Login(Interface):
 
     def __acao_btn_logon(self):
         soquete = socket(AF_INET, SOCK_STREAM)
-        soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
 
-        soquete.send(codificar(PedidoLogin(self.entry_name.get().strip(), self.entry_pswd.get().strip())))
+        try:
+            soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
 
-        dados_cliente = descodificar(soquete.recv(BUFFER), Usuario)
+            soquete.send(codificar(PedidoLogin(self.entry_name.get().strip(), self.entry_pswd.get().strip())))
 
-        if dados_cliente:
-            self.main_frame.destroy()
-            MenuPrincipal(self._tk, dados_cliente, soquete)
-        else:
-            showerror(title="ERRO", message="Usuario nao cadastrado")
-            self.__limpar_campos()
+            dados_cliente = descodificar(soquete.recv(BUFFER), Usuario)
+
+            if dados_cliente:
+                self.main_frame.destroy()
+                MenuPrincipal(self._tk, dados_cliente, soquete)
+            else:
+                showerror(title="ERRO", message="Usuario nao cadastrado")
+                soquete.close()
+                self.__limpar_campos()
+
+        except ConnectionRefusedError as erro:
+            print(erro)
+            _conexao_recusada()
+            soquete.close()
+
+        except ConnectionAbortedError as erro:
+            print(erro)
+            _conexao_abortada()
+            soquete.close()
+
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+            soquete.close()
+
+        except json.decoder.JSONDecodeError as erro:
+            print(erro)
+            _dados_recebidos_invalidos()
+            soquete.close()
 
     def _fechar(self):
         self._tk.destroy()
@@ -157,19 +181,37 @@ class Cadastro(Interface):
 
     def __acao_btn_n_usr(self):
         soquete = socket(AF_INET, SOCK_STREAM)
-        soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
 
-        soquete.send(codificar(PedidoCadastroUsuario(str(self.entry_name.get()).strip(),
-                                                     str(self.entry_pswd.get()).strip())))
+        try:
+            soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
 
-        if descodificar(soquete.recv(BUFFER), bool):
-            showinfo(title="AVISO", message="Usuario cadastrado com sucesso")
-        else:
-            showerror(title="ERRO", message="Usuario ja cadastrado")
+            soquete.send(codificar(PedidoCadastroUsuario(str(self.entry_name.get()).strip(),
+                                                         str(self.entry_pswd.get()).strip())))
 
-        soquete.close()
+            if descodificar(soquete.recv(BUFFER), bool):
+                showinfo(title="AVISO", message="Usuario cadastrado com sucesso")
+            else:
+                showerror(title="ERRO", message="Usuario ja cadastrado")
 
-        self.__limpar_campos()
+        except ConnectionRefusedError as erro:
+            print(erro)
+            _conexao_recusada()
+
+        except ConnectionAbortedError as erro:
+            print(erro)
+            _conexao_abortada()
+
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+
+        except json.decoder.JSONDecodeError as erro:
+            print(erro)
+            _dados_recebidos_invalidos()
+
+        finally:
+            soquete.close()
+            self.__limpar_campos()
 
     def _fechar(self):
         self._tk.destroy()
@@ -215,17 +257,27 @@ class MenuPrincipal(Interface):
         MenuGrupos(self._tk, self.dados_cliente, self.soquete)
 
     def __acao_btn_exit(self):
-        self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
+        try:
+            self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
 
-        if descodificar(self.soquete.recv(BUFFER), bool):
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+
+        finally:
             self.soquete.close()
             self.main_frame.destroy()
             Login(self._tk)
 
     def _fechar(self):
-        self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
+        try:
+            self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
 
-        if descodificar(self.soquete.recv(BUFFER), bool):
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+
+        finally:
             self.soquete.close()
             self._tk.destroy()
 
@@ -264,9 +316,40 @@ class MenuUsuarios(Interface):
         self.frame_botoes.pack(fill=BOTH, expand=True)
 
     def __atualizar_usuarios_online(self):
-        self.soquete.send(codificar(PedidoAtualizarListaClientes(self.dados_cliente)))
+        try:
+            self.soquete.send(codificar(PedidoAtualizarListaClientes(self.dados_cliente)))
 
-        return descodificar(self.soquete.recv(BUFFER), [Usuario])
+            return descodificar(self.soquete.recv(BUFFER), [Usuario])
+
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
+
+        except ConnectionAbortedError as erro:
+            print(erro)
+            _conexao_abortada()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
+
+        except json.decoder.JSONDecodeError as erro:
+            print(erro)
+            _dados_recebidos_invalidos()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
 
     def __carregar_botoes_usuarios(self):
         self.frame_botoes_usuarios = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
@@ -296,9 +379,14 @@ class MenuUsuarios(Interface):
         MenuPrincipal(self._tk, self.dados_cliente, self.soquete)
 
     def _fechar(self):
-        self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
+        try:
+            self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
 
-        if descodificar(self.soquete.recv(BUFFER), bool):
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+
+        finally:
             self.soquete.close()
             self._tk.destroy()
 
@@ -341,9 +429,40 @@ class MenuGrupos(Interface):
         self.frame_botoes.pack(fill=BOTH, expand=True)
 
     def __atualizar_grupos_participantes(self):
-        self.soquete.send(codificar(PedidoAtualizarListaGrupos(self.dados_cliente)))
+        try:
+            self.soquete.send(codificar(PedidoAtualizarListaGrupos(self.dados_cliente)))
 
-        return descodificar(self.soquete.recv(BUFFER), [Grupo])
+            return descodificar(self.soquete.recv(BUFFER), [Grupo])
+
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
+
+        except ConnectionAbortedError as erro:
+            print(erro)
+            _conexao_abortada()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
+
+        except json.decoder.JSONDecodeError as erro:
+            print(erro)
+            _dados_recebidos_invalidos()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
 
     def __carregar_botoes_grupo(self):
         self.frame_botoes_grupos = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
@@ -377,9 +496,14 @@ class MenuGrupos(Interface):
         MenuPrincipal(self._tk, self.dados_cliente, self.soquete)
 
     def _fechar(self):
-        self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
+        try:
+            self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
 
-        if descodificar(self.soquete.recv(BUFFER), bool):
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+
+        finally:
             self.soquete.close()
             self._tk.destroy()
 
@@ -418,14 +542,45 @@ class ChatUsuario(Interface):
                                command=self.__enviar_mensagem)
         self.btn_send.grid(row=2, column=2)
 
-        self.soquete.send(codificar(PedidoMensagensPrivadasArquivadas(self.dados_cliente, self.destinatario)))
+        try:
+            self.soquete.send(codificar(PedidoMensagensPrivadasArquivadas(self.dados_cliente, self.destinatario)))
 
-        mensagens_arquivadas = descodificar(self.soquete.recv(BUFFER), [MensagemPrivada])
+            mensagens_arquivadas = descodificar(self.soquete.recv(BUFFER), [MensagemPrivada])
 
-        if mensagens_arquivadas:
-            for mensagem in mensagens_arquivadas:
-                if mensagem:
-                    self.__mostrar_mensagem(mensagem)
+            if mensagens_arquivadas:
+                for mensagem in mensagens_arquivadas:
+                    if mensagem:
+                        self.__mostrar_mensagem(mensagem)
+
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
+
+        except ConnectionAbortedError as erro:
+            print(erro)
+            _conexao_abortada()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
+
+        except json.decoder.JSONDecodeError as erro:
+            print(erro)
+            _dados_recebidos_invalidos()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
 
         self.receber_mensagens = Thread(target=self.__receber_mensagens)
         self.receber_mensagens.start()
@@ -443,30 +598,80 @@ class ChatUsuario(Interface):
         msg = self.send_area.get("1.0", END).strip()
         self.send_area.delete("1.0", END)
         msg = MensagemPrivada(self.dados_cliente, msg, self.destinatario)
-        self.__mostrar_mensagem(msg)
-        self.soquete.send(codificar(msg))
+        try:
+            self.soquete.send(codificar(msg))
+
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
 
     def __receber_mensagens(self):
         while True:
-            msg = descodificar(self.soquete.recv(BUFFER), Pedido)
-            if msg:
-                self.__mostrar_mensagem(msg)
-            else:
+            try:
+                msg = descodificar(self.soquete.recv(BUFFER), Pedido)
+                if msg:
+                    self.__mostrar_mensagem(msg)
+                else:
+                    break
+
+            except ConnectionResetError as erro:
+                print(erro)
+                _conexao_resetada()
+                self.send_area.insert(END, "DESCONECTADO DO CHAT")
+                self.send_area.configure(state=DISABLED)
+                self.send_area.see(END)
+                break
+
+            except ConnectionAbortedError as erro:
+                print(erro)
+                _conexao_abortada()
+                self.send_area.insert(END, "DESCONECTADO DO CHAT")
+                self.send_area.configure(state=DISABLED)
+                self.send_area.see(END)
+                break
+
+            except json.decoder.JSONDecodeError as erro:
+                print(erro)
+                _dados_recebidos_invalidos()
+                self.send_area.insert(END, "DESCONECTADO DO CHAT")
+                self.send_area.configure(state=DISABLED)
+                self.send_area.see(END)
                 break
 
     def __acao_btn_exit(self):
-        self.soquete.send(codificar(None))
-        self.receber_mensagens.join()
+        try:
+            self.soquete.send(codificar(None))
+            self.receber_mensagens.join()
+            self.main_frame.destroy()
+            MenuUsuarios(self._tk, self.dados_cliente, self.soquete)
 
-        self.main_frame.destroy()
-        MenuUsuarios(self._tk, self.dados_cliente, self.soquete)
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
 
     def _fechar(self):
-        self.soquete.send(codificar(None))
-        self.receber_mensagens.join()
-        self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
+        try:
+            self.soquete.send(codificar(None))
+            self.receber_mensagens.join()
+            self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
 
-        if descodificar(self.soquete.recv(BUFFER), bool):
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+
+        finally:
             self.soquete.close()
             self._tk.destroy()
 
@@ -505,14 +710,45 @@ class ChatGrupo(Interface):
                                command=self.__enviar_mensagem)
         self.btn_send.grid(row=2, column=2)
 
-        self.soquete.send(codificar(PedidoMensagensGrupoArquivadas(self.dados_cliente, self.grupo)))
+        try:
+            self.soquete.send(codificar(PedidoMensagensGrupoArquivadas(self.dados_cliente, self.grupo)))
 
-        mensagens_arquivadas = descodificar(self.soquete.recv(BUFFER), [MensagemGrupo])
+            mensagens_arquivadas = descodificar(self.soquete.recv(BUFFER), [MensagemGrupo])
 
-        if mensagens_arquivadas:
-            for mensagem in mensagens_arquivadas:
-                if mensagem:
-                    self.__mostrar_mensagem(mensagem)
+            if mensagens_arquivadas:
+                for mensagem in mensagens_arquivadas:
+                    if mensagem:
+                        self.__mostrar_mensagem(mensagem)
+
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
+
+        except ConnectionAbortedError as erro:
+            print(erro)
+            _conexao_abortada()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
+
+        except json.decoder.JSONDecodeError as erro:
+            print(erro)
+            _dados_recebidos_invalidos()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
 
         self.receber_mensagens = Thread(target=self.__receber_mensagens)
         self.receber_mensagens.start()
@@ -530,30 +766,80 @@ class ChatGrupo(Interface):
         msg = self.send_area.get("1.0", END).strip()
         self.send_area.delete("1.0", END)
         msg = MensagemGrupo(self.dados_cliente, msg, self.grupo)
-        self.__mostrar_mensagem(msg)
-        self.soquete.send(codificar(msg))
+        try:
+            self.soquete.send(codificar(msg))
+
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
 
     def __receber_mensagens(self):
         while True:
-            msg = descodificar(self.soquete.recv(BUFFER), Pedido)
-            if msg:
-                self.__mostrar_mensagem(msg)
-            else:
+            try:
+                msg = descodificar(self.soquete.recv(BUFFER), Pedido)
+                if msg:
+                    self.__mostrar_mensagem(msg)
+                else:
+                    break
+
+            except ConnectionResetError as erro:
+                print(erro)
+                _conexao_resetada()
+                self.send_area.insert(END, "DESCONECTADO DO CHAT")
+                self.send_area.configure(state=DISABLED)
+                self.send_area.see(END)
+                break
+
+            except ConnectionAbortedError as erro:
+                print(erro)
+                _conexao_abortada()
+                self.send_area.insert(END, "DESCONECTADO DO CHAT")
+                self.send_area.configure(state=DISABLED)
+                self.send_area.see(END)
+                break
+
+            except json.decoder.JSONDecodeError as erro:
+                print(erro)
+                _dados_recebidos_invalidos()
+                self.send_area.insert(END, "DESCONECTADO DO CHAT")
+                self.send_area.configure(state=DISABLED)
+                self.send_area.see(END)
                 break
 
     def __acao_btn_exit(self):
-        self.soquete.send(codificar(None))
-        self.receber_mensagens.join()
+        try:
+            self.soquete.send(codificar(None))
+            self.receber_mensagens.join()
+            self.main_frame.destroy()
+            MenuUsuarios(self._tk, self.dados_cliente, self.soquete)
 
-        self.main_frame.destroy()
-        MenuGrupos(self._tk, self.dados_cliente, self.soquete)
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
 
     def _fechar(self):
-        self.soquete.send(codificar(None))
-        self.receber_mensagens.join()
-        self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
+        try:
+            self.soquete.send(codificar(None))
+            self.receber_mensagens.join()
+            self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
 
-        if descodificar(self.soquete.recv(BUFFER), bool):
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+
+        finally:
             self.soquete.close()
             self._tk.destroy()
 
@@ -610,26 +896,82 @@ class CadastroGrupo(Interface):
         self.entry_members.delete(0, "end")
 
     def __acao_btn_nw_group(self):
-        self.soquete.send(codificar(PedidoCadastroGrupo(self.dados_cliente,
-                                                        str(self.entry_name.get()).strip(),
-                                                        str(self.entry_members.get()).strip().split(","))))
+        try:
+            self.soquete.send(codificar(PedidoCadastroGrupo(self.dados_cliente,
+                                                            str(self.entry_name.get()).strip(),
+                                                            str(self.entry_members.get()).strip().split(","))))
 
-        resultado = descodificar(self.soquete.recv(BUFFER), bool)
+            resultado = descodificar(self.soquete.recv(BUFFER), bool)
 
-        if resultado:
-            showinfo(title="AVISO", message="Grupo cadastrado com sucesso")
-        else:
-            showerror(title="ERRO", message="Grupo ja cadastrado")
+            if resultado:
+                showinfo(title="AVISO", message="Grupo cadastrado com sucesso")
+            else:
+                showerror(title="ERRO", message="Grupo ja cadastrado")
 
-        self.__limpar_campos()
+            self.__limpar_campos()
+
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
+
+        except ConnectionAbortedError as erro:
+            print(erro)
+            _conexao_abortada()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
+
+        except json.decoder.JSONDecodeError as erro:
+            print(erro)
+            _dados_recebidos_invalidos()
+            self.soquete.close()
+            try:
+                self.main_frame.destroy()
+                Login(self._tk)
+            except AttributeError:
+                exit()
 
     def __acao_btn_back(self):
         self.main_frame.destroy()
         MenuGrupos(self._tk, self.dados_cliente, self.soquete)
 
     def _fechar(self):
-        self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
+        try:
+            self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
 
-        if descodificar(self.soquete.recv(BUFFER), bool):
+        except ConnectionResetError as erro:
+            print(erro)
+            _conexao_resetada()
+
+        finally:
             self.soquete.close()
             self._tk.destroy()
+
+
+def _conexao_recusada():
+    showerror(title="CONEXAO RECUSADA", message="o servidor recusou a conexao, verifique se o servidor esta"
+                                                " online e se o programa esta conectado ao servidor correto")
+
+
+def _conexao_abortada():
+    showerror(title="CONEXAO ABORTADA", message="o servidor nao esta respondendo, verifique se o servidor esta"
+                                                " online e se o programa esta conectado ao servidor correto")
+
+
+def _conexao_resetada():
+    showerror(title="CONEXAO RESETADA", message="a conexao com o servidor foi perdida, verifique se o servidor esta"
+                                                " online e se o programa esta conectado ao servidor correto")
+
+
+def _dados_recebidos_invalidos():
+    showerror(title="DADOS INVALIDOS", message="dados invalidos recebidos do servidor,"
+                                               " tente novamente ou reinicie o servidor")
