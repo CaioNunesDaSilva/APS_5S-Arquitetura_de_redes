@@ -55,7 +55,12 @@ def debug_cadastrar_grupo(nome: str, integrantes):
 
 # TODO deletar funcao de debug
 def debug_login(nome: str, senha: str):
-    return Usuario(1, nome)
+    if nome == "a":
+        return Usuario(1, "a")
+    elif nome == "b":
+        return Usuario(2, "b")
+    else:
+        return Usuario(555, "guest")
 
 
 # TODO deletar funcao de debug
@@ -75,3 +80,12 @@ def debug_mensagens_grupo_arquivadas(grupo: str, usuario: str):
     if grupo == "grupo1" and usuario == "a":
         return [MensagemGrupo(Usuario(0, "teste1"), "hello", "grupo1"), MensagemGrupo(Usuario(0, "teste2"), "world", "grupo1")]
 
+
+# TODO deletar funcao de debug
+def debug_arquivar_mensagem_privada(msg: MensagemPrivada):
+    return True
+
+
+# TODO deletar funcao de debug
+def debug_arquivar_mensagem_grupo(msg: MensagemGrupo, usuarios: [Usuario]):
+    return [True, Usuario(1, "a")]

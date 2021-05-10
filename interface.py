@@ -22,17 +22,19 @@ class Interface(ABC):
         self._tk.resizable(False, False)
         self._tk["background"] = COR_DE_FUNDO_PADRAO
         self._iniciar_tela()
+        self._tk.protocol("WM_DELETE_WINDOW", self._fechar)
         self._tk.mainloop()
 
     @abstractmethod
     def _iniciar_tela(self):
         pass
 
-    def _mudar_titulo(self, titulo):
+    def _mudar_titulo(self, titulo: str):
         self._tk.title(titulo)
 
+    @abstractmethod
     def _fechar(self):
-        self._tk.destroy()
+        pass
 
 
 class Login(Interface):
@@ -77,6 +79,10 @@ class Login(Interface):
         self.btn_logon.grid(row=0, column=0, sticky=E)
         self.btn_n_usr.grid(row=0, column=2, sticky=W)
 
+    def __limpar_campos(self):
+        self.entry_name.delete(0, "end")
+        self.entry_pswd.delete(0, "end")
+
     def __acao_btn_n_usr(self):
         self.main_frame.destroy()
         Cadastro(self._tk)
@@ -94,6 +100,10 @@ class Login(Interface):
             MenuPrincipal(self._tk, dados_cliente, soquete)
         else:
             showerror(title="ERRO", message="Usuario nao cadastrado")
+            self.__limpar_campos()
+
+    def _fechar(self):
+        self._tk.destroy()
 
 
 class Cadastro(Interface):
@@ -137,6 +147,10 @@ class Cadastro(Interface):
         self.btn_n_usr.grid(row=0, column=2, sticky=W)
         self.btn_back.grid(row=0, column=0, sticky=E)
 
+    def __limpar_campos(self):
+        self.entry_name.delete(0, "end")
+        self.entry_pswd.delete(0, "end")
+
     def __acao_btn_back(self):
         self.main_frame.destroy()
         Login(self._tk)
@@ -155,8 +169,10 @@ class Cadastro(Interface):
 
         soquete.close()
 
-        self.entry_name.delete(0, "end")
-        self.entry_pswd.delete(0, "end")
+        self.__limpar_campos()
+
+    def _fechar(self):
+        self._tk.destroy()
 
 
 class MenuPrincipal(Interface):
@@ -180,14 +196,14 @@ class MenuPrincipal(Interface):
         self.frame_botoes = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
         self.frame_botoes.pack(fill=BOTH, expand=True)
 
-        self.btn_users = Button(self.frame_botoes, text="USUARIOS ONLINE", font=FONTE_BTN_MENU, width=15, padx=10, pady=5,
-                                command=self.__acao_btn_users)
+        self.btn_users = Button(self.frame_botoes, text="USUARIOS ONLINE", font=FONTE_BTN_MENU,
+                                width=15, padx=10, pady=5, command=self.__acao_btn_users)
         self.btn_users.grid(row=0, column=0, pady=3)
-        self.btn_groups = Button(self.frame_botoes, text="GRUPOS", font=FONTE_BTN_MENU, width=15, padx=10, pady=5,
-                                 command=self.__acao_btn_groups)
+        self.btn_groups = Button(self.frame_botoes, text="GRUPOS", font=FONTE_BTN_MENU,
+                                 width=15, padx=10, pady=5, command=self.__acao_btn_groups)
         self.btn_groups.grid(row=1, column=0, pady=3)
-        self.btn_exit = Button(self.frame_botoes, text="SAIR", font=FONTE_BTN_MENU, width=15, padx=10, pady=5,
-                               command=self.__acao_btn_exit)
+        self.btn_exit = Button(self.frame_botoes, text="SAIR", font=FONTE_BTN_MENU,
+                               width=15, padx=10, pady=5, command=self.__acao_btn_exit)
         self.btn_exit.grid(row=3, column=0, pady=3)
 
     def __acao_btn_users(self):
@@ -205,6 +221,13 @@ class MenuPrincipal(Interface):
             self.soquete.close()
             self.main_frame.destroy()
             Login(self._tk)
+
+    def _fechar(self):
+        self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
+
+        if descodificar(self.soquete.recv(BUFFER), bool):
+            self.soquete.close()
+            self._tk.destroy()
 
 
 class MenuUsuarios(Interface):
@@ -235,14 +258,7 @@ class MenuUsuarios(Interface):
 
         self.frame_header.pack()
 
-        self.frame_botoes_usuarios = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
-
-        for usuario in self.usuarios_online:
-            Button(self.frame_botoes_usuarios, text=usuario.nome, font=FONTE_BTN_USUARIOS,
-                   background=COR_DE_FUNDO_BTN_LISTA,
-                   command=lambda username=usuario.nome: self.__acao_botoes_usuarios(username)).pack()
-
-        self.frame_botoes_usuarios.pack()
+        self.__carregar_botoes_usuarios()
 
         self.frame_botoes = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
         self.frame_botoes.pack(fill=BOTH, expand=True)
@@ -252,11 +268,7 @@ class MenuUsuarios(Interface):
 
         return descodificar(self.soquete.recv(BUFFER), [Usuario])
 
-    def __acao_btn_refresh(self):
-        self.usuarios_online = self.__atualizar_usuarios_online()
-
-        self.frame_botoes_usuarios.destroy()
-
+    def __carregar_botoes_usuarios(self):
         self.frame_botoes_usuarios = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
 
         for usuario in self.usuarios_online:
@@ -266,15 +278,29 @@ class MenuUsuarios(Interface):
 
         self.frame_botoes_usuarios.pack()
 
+    def __acao_btn_refresh(self):
+        self.usuarios_online = self.__atualizar_usuarios_online()
+
+        self.frame_botoes_usuarios.destroy()
+
+        self.__carregar_botoes_usuarios()
+
         self.label_info["text"] = f"{len(self.usuarios_online)} usuarios online"
 
-    def __acao_botoes_usuarios(self, destinatario):
+    def __acao_botoes_usuarios(self, destinatario: str):
         self.main_frame.destroy()
         ChatUsuario(self._tk, self.dados_cliente, destinatario, self.soquete)
 
     def __acao_btn_exit(self):
         self.main_frame.destroy()
         MenuPrincipal(self._tk, self.dados_cliente, self.soquete)
+
+    def _fechar(self):
+        self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
+
+        if descodificar(self.soquete.recv(BUFFER), bool):
+            self.soquete.close()
+            self._tk.destroy()
 
 
 class MenuGrupos(Interface):
@@ -309,14 +335,7 @@ class MenuGrupos(Interface):
 
         self.frame_header.pack()
 
-        self.frame_botoes_grupos = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
-
-        for grupo in self.grupos_participante:
-            Button(self.frame_botoes_grupos, text=grupo.nome, font=FONTE_BTN_GRUPOS,
-                   background=COR_DE_FUNDO_BTN_LISTA,
-                   command=lambda groupname=grupo.nome: self.__acao_botoes_grupos(groupname)).pack()
-
-        self.frame_botoes_grupos.pack()
+        self.__carregar_botoes_grupo()
 
         self.frame_botoes = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
         self.frame_botoes.pack(fill=BOTH, expand=True)
@@ -326,15 +345,7 @@ class MenuGrupos(Interface):
 
         return descodificar(self.soquete.recv(BUFFER), [Grupo])
 
-    def __acao_botoes_grupos(self, grupo):
-        self.main_frame.destroy()
-        ChatGrupo(self._tk, self.dados_cliente, grupo, self.soquete)
-
-    def __acao_btn_refresh(self):
-        self.grupos_participante = self.__atualizar_grupos_participantes()
-
-        self.frame_botoes_grupos.destroy()
-
+    def __carregar_botoes_grupo(self):
         self.frame_botoes_grupos = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
 
         for grupo in self.grupos_participante:
@@ -343,6 +354,17 @@ class MenuGrupos(Interface):
                    command=lambda groupname=grupo.nome: self.__acao_botoes_grupos(groupname)).pack()
 
         self.frame_botoes_grupos.pack()
+
+    def __acao_botoes_grupos(self, grupo: str):
+        self.main_frame.destroy()
+        ChatGrupo(self._tk, self.dados_cliente, grupo, self.soquete)
+
+    def __acao_btn_refresh(self):
+        self.grupos_participante = self.__atualizar_grupos_participantes()
+
+        self.frame_botoes_grupos.destroy()
+
+        self.__carregar_botoes_grupo()
 
         self.label_info["text"] = f"{len(self.grupos_participante)} grupos"
 
@@ -353,6 +375,13 @@ class MenuGrupos(Interface):
     def __acao_btn_exit(self):
         self.main_frame.destroy()
         MenuPrincipal(self._tk, self.dados_cliente, self.soquete)
+
+    def _fechar(self):
+        self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
+
+        if descodificar(self.soquete.recv(BUFFER), bool):
+            self.soquete.close()
+            self._tk.destroy()
 
 
 class ChatUsuario(Interface):
@@ -371,11 +400,13 @@ class ChatUsuario(Interface):
         self.main_frame.grid_columnconfigure(3, minsize=10)
         self.main_frame.pack(fill=X)
 
-        self.recv_area = ScrolledText(self.main_frame, font=FONTE_CHAT_MENSAGEM_RECEBIDA, borderwidth=2, width=80, height=20)
+        self.recv_area = ScrolledText(self.main_frame, font=FONTE_CHAT_MENSAGEM_RECEBIDA,
+                                      borderwidth=2, width=80, height=20)
         self.recv_area.configure(state=DISABLED, wrap=WORD)
         self.recv_area.grid(row=0, column=0)
 
-        self.send_area = ScrolledText(self.main_frame, font=FONTE_CHAT_MENSAGEM_ENVIADA, borderwidth=2, width=80, height=5)
+        self.send_area = ScrolledText(self.main_frame, font=FONTE_CHAT_MENSAGEM_ENVIADA,
+                                      borderwidth=2, width=80, height=5)
         self.send_area.configure(wrap=WORD)
         self.send_area.grid(row=2, column=0)
 
@@ -393,7 +424,8 @@ class ChatUsuario(Interface):
 
         if mensagens_arquivadas:
             for mensagem in mensagens_arquivadas:
-                self.__mostrar_mensagem(mensagem)
+                if mensagem:
+                    self.__mostrar_mensagem(mensagem)
 
         self.receber_mensagens = Thread(target=self.__receber_mensagens)
         self.receber_mensagens.start()
@@ -416,9 +448,8 @@ class ChatUsuario(Interface):
 
     def __receber_mensagens(self):
         while True:
-            msg = descodificar(self.soquete.recv(BUFFER), MensagemPrivada)
+            msg = descodificar(self.soquete.recv(BUFFER), Pedido)
             if msg:
-                msg = MensagemPrivada.MensagemPrivada_from_dict(msg)
                 self.__mostrar_mensagem(msg)
             else:
                 break
@@ -429,6 +460,15 @@ class ChatUsuario(Interface):
 
         self.main_frame.destroy()
         MenuUsuarios(self._tk, self.dados_cliente, self.soquete)
+
+    def _fechar(self):
+        self.soquete.send(codificar(None))
+        self.receber_mensagens.join()
+        self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
+
+        if descodificar(self.soquete.recv(BUFFER), bool):
+            self.soquete.close()
+            self._tk.destroy()
 
 
 class ChatGrupo(Interface):
@@ -447,11 +487,13 @@ class ChatGrupo(Interface):
         self.main_frame.grid_columnconfigure(3, minsize=10)
         self.main_frame.pack(fill=X)
 
-        self.recv_area = ScrolledText(self.main_frame, font=FONTE_CHAT_MENSAGEM_RECEBIDA, borderwidth=2, width=80, height=20)
+        self.recv_area = ScrolledText(self.main_frame, font=FONTE_CHAT_MENSAGEM_RECEBIDA,
+                                      borderwidth=2, width=80, height=20)
         self.recv_area.configure(state=DISABLED, wrap=WORD)
         self.recv_area.grid(row=0, column=0)
 
-        self.send_area = ScrolledText(self.main_frame, font=FONTE_CHAT_MENSAGEM_ENVIADA, borderwidth=2, width=80, height=5)
+        self.send_area = ScrolledText(self.main_frame, font=FONTE_CHAT_MENSAGEM_ENVIADA,
+                                      borderwidth=2, width=80, height=5)
         self.send_area.configure(wrap=WORD)
         self.send_area.grid(row=2, column=0)
 
@@ -469,7 +511,8 @@ class ChatGrupo(Interface):
 
         if mensagens_arquivadas:
             for mensagem in mensagens_arquivadas:
-                self.__mostrar_mensagem(mensagem)
+                if mensagem:
+                    self.__mostrar_mensagem(mensagem)
 
         self.receber_mensagens = Thread(target=self.__receber_mensagens)
         self.receber_mensagens.start()
@@ -492,9 +535,8 @@ class ChatGrupo(Interface):
 
     def __receber_mensagens(self):
         while True:
-            msg = descodificar(self.soquete.recv(BUFFER), MensagemGrupo)
+            msg = descodificar(self.soquete.recv(BUFFER), Pedido)
             if msg:
-                msg = MensagemGrupo.MensagemGrupo_from_dict(msg)
                 self.__mostrar_mensagem(msg)
             else:
                 break
@@ -505,6 +547,15 @@ class ChatGrupo(Interface):
 
         self.main_frame.destroy()
         MenuGrupos(self._tk, self.dados_cliente, self.soquete)
+
+    def _fechar(self):
+        self.soquete.send(codificar(None))
+        self.receber_mensagens.join()
+        self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
+
+        if descodificar(self.soquete.recv(BUFFER), bool):
+            self.soquete.close()
+            self._tk.destroy()
 
 
 class CadastroGrupo(Interface):
@@ -519,10 +570,12 @@ class CadastroGrupo(Interface):
         self.main_frame.pack(fill=BOTH, expand=True)
 
         self.frame_entry = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
-        self.label_name = Label(self.frame_entry, text="Nome do Grupo", bg=COR_DE_FUNDO_PADRAO, font=FONTE_LABEL_CADASTRO)
+        self.label_name = Label(self.frame_entry, text="Nome do Grupo", bg=COR_DE_FUNDO_PADRAO,
+                                font=FONTE_LABEL_CADASTRO)
         self.entry_name = Entry(self.frame_entry, borderwidth=2, width=18, font=FONTE_ENTRY_CADASTRO)
 
-        self.label_members = Label(self.frame_entry, text="Integrantes", bg=COR_DE_FUNDO_PADRAO, font=FONTE_LABEL_CADASTRO)
+        self.label_members = Label(self.frame_entry, text="Integrantes", bg=COR_DE_FUNDO_PADRAO,
+                                   font=FONTE_LABEL_CADASTRO)
         self.entry_members = Entry(self.frame_entry, borderwidth=2, width=18, font=FONTE_ENTRY_CADASTRO)
 
         self.frame_entry.grid_rowconfigure(1, minsize=50)
@@ -552,6 +605,10 @@ class CadastroGrupo(Interface):
         self.btn_nw_group.grid(row=0, column=2, sticky=W)
         self.btn_back.grid(row=0, column=0, sticky=E)
 
+    def __limpar_campos(self):
+        self.entry_name.delete(0, "end")
+        self.entry_members.delete(0, "end")
+
     def __acao_btn_nw_group(self):
         self.soquete.send(codificar(PedidoCadastroGrupo(self.dados_cliente,
                                                         str(self.entry_name.get()).strip(),
@@ -564,9 +621,15 @@ class CadastroGrupo(Interface):
         else:
             showerror(title="ERRO", message="Grupo ja cadastrado")
 
-        self.entry_name.delete(0, "end")
-        self.entry_members.delete(0, "end")
+        self.__limpar_campos()
 
     def __acao_btn_back(self):
         self.main_frame.destroy()
         MenuGrupos(self._tk, self.dados_cliente, self.soquete)
+
+    def _fechar(self):
+        self.soquete.send(codificar(PedidoDesconectar(self.dados_cliente)))
+
+        if descodificar(self.soquete.recv(BUFFER), bool):
+            self.soquete.close()
+            self._tk.destroy()

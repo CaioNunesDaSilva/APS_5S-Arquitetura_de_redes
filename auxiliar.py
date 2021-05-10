@@ -312,39 +312,42 @@ def descodificar(dados, classe):
         return lista_grupo
 
     elif classe == Pedido:
-        dic = loads(dados)
+        if dados:
+            dic = loads(dados)
 
-        if dic:
-            tipo = TipoPedido.from_str(dic["tipo"])
+            if dic:
+                tipo = TipoPedido.from_str(dic["tipo"])
 
-            if tipo == TipoPedido.CADASTRO_USUARIO:
-                return PedidoCadastroUsuario.PedidoCadastroUsuario_from_dict(dic)
-            elif tipo == TipoPedido.LOGIN:
-                return PedidoLogin.PedidoLogin_from_dict(dic)
+                if tipo == TipoPedido.CADASTRO_USUARIO:
+                    return PedidoCadastroUsuario.PedidoCadastroUsuario_from_dict(dic)
+                elif tipo == TipoPedido.LOGIN:
+                    return PedidoLogin.PedidoLogin_from_dict(dic)
 
-            elif tipo == TipoPedido.ATUALIZAR_LISTA_CLIENTES:
-                return PedidoAtualizarListaClientes.PedidoAtualizarListaClientes_from_dict(dic)
+                elif tipo == TipoPedido.ATUALIZAR_LISTA_CLIENTES:
+                    return PedidoAtualizarListaClientes.PedidoAtualizarListaClientes_from_dict(dic)
 
-            elif tipo == TipoPedido.ATUALIZAR_LISTA_GRUPOS:
-                return PedidoAtualizarListaGrupos.PedidoAtualizarListaGrupos_from_dict(dic)
+                elif tipo == TipoPedido.ATUALIZAR_LISTA_GRUPOS:
+                    return PedidoAtualizarListaGrupos.PedidoAtualizarListaGrupos_from_dict(dic)
 
-            elif tipo == TipoPedido.CADASTRO_GRUPO:
-                return PedidoCadastroGrupo.PedidoCadastroGrupo_from_dict(dic)
+                elif tipo == TipoPedido.CADASTRO_GRUPO:
+                    return PedidoCadastroGrupo.PedidoCadastroGrupo_from_dict(dic)
 
-            elif tipo == TipoPedido.DESCONECTAR:
-                return PedidoDesconectar.PedidoDesconectar_from_dict(dic)
+                elif tipo == TipoPedido.DESCONECTAR:
+                    return PedidoDesconectar.PedidoDesconectar_from_dict(dic)
 
-            elif tipo == TipoPedido.MENSAGEMS_PRIVADAS_ARQUIVADAS:
-                return PedidoMensagensPrivadasArquivadas.PedidoMensagensPrivadasArquivadas_from_dict(dic)
+                elif tipo == TipoPedido.MENSAGEMS_PRIVADAS_ARQUIVADAS:
+                    return PedidoMensagensPrivadasArquivadas.PedidoMensagensPrivadasArquivadas_from_dict(dic)
 
-            elif tipo == TipoPedido.MENSAGEMS_GRUPO_ARQUIVADAS:
-                return PedidoMensagensGrupoArquivadas.PedidoMensagensGrupoArquivadas_from_dict(dic)
+                elif tipo == TipoPedido.MENSAGEMS_GRUPO_ARQUIVADAS:
+                    return PedidoMensagensGrupoArquivadas.PedidoMensagensGrupoArquivadas_from_dict(dic)
 
-            elif tipo == TipoPedido.MENSSAGEM_PRIVADA:
-                return MensagemPrivada.MensagemPrivada_from_dict(dic)
+                elif tipo == TipoPedido.MENSSAGEM_PRIVADA:
+                    return MensagemPrivada.MensagemPrivada_from_dict(dic)
 
-            elif tipo == TipoPedido.MENSSAGEM_GRUPO:
-                return MensagemGrupo.MensagemGrupo_from_dict(dic)
+                elif tipo == TipoPedido.MENSSAGEM_GRUPO:
+                    return MensagemGrupo.MensagemGrupo_from_dict(dic)
+            else:
+                return None
         else:
             return None
 
