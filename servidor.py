@@ -82,7 +82,8 @@ def controlador_cliente(conexao, endereco):
                     if grupo.nome == pedido.grupo:
                         for cliente in grupo.membros:
                             if cliente in CLIENTES:
-                                CONEXOES[CLIENTES.index(cliente)].send(codificar(MensagemGrupo.clonar(pedido)))
+                                if cliente != pedido.remetente:
+                                    CONEXOES[CLIENTES.index(cliente)].send(codificar(MensagemGrupo.clonar(pedido)))
                             else:
                                 usuarios_nao_disponiveis.append(cliente)
 

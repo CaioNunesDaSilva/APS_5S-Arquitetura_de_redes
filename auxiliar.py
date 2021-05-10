@@ -86,7 +86,7 @@ class Grupo(Entidade, JSONserializable):
                 membro = loads(membro)
 
             if isinstance(membro, dict):
-                membro = Usuario.Usuario_from_dict(membro)
+                membro = Usuario.clonar(Usuario.Usuario_from_dict(membro))
 
             membros.append(Usuario.clonar(membro))
 
@@ -241,7 +241,7 @@ class MensagemGrupo(Pedido):
 
     @classmethod
     def clonar(cls, mensagem_grupo: 'MensagemGrupo') -> 'MensagemGrupo':
-        return cls(mensagem_grupo.remetente, mensagem_grupo.mensagem, mensagem_grupo.grupo)
+        return cls(Usuario.clonar(mensagem_grupo.remetente), mensagem_grupo.mensagem, mensagem_grupo.grupo)
 
     @classmethod
     def MensagemGrupo_from_dict(cls, dic: dict) -> 'MensagemGrupo':
