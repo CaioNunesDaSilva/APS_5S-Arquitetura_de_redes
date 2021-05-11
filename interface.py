@@ -1,14 +1,10 @@
-import json.decoder
-from abc import ABC
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from tkinter import *
 from tkinter.scrolledtext import ScrolledText
-from tkinter.messagebox import showinfo
-from tkinter.messagebox import showerror
-from socket import socket
-from socket import AF_INET
-from socket import SOCK_STREAM
+from tkinter.messagebox import showinfo, showerror
+from socket import socket, AF_INET, SOCK_STREAM
 from threading import Thread
+from json.decoder import JSONDecodeError
 
 from auxiliar import *
 from constantes import *
@@ -121,7 +117,7 @@ class Login(Interface):
             _conexao_resetada()
             soquete.close()
 
-        except json.decoder.JSONDecodeError as erro:
+        except JSONDecodeError as erro:
             print(erro)
             _dados_recebidos_invalidos()
             soquete.close()
@@ -205,7 +201,7 @@ class Cadastro(Interface):
             print(erro)
             _conexao_resetada()
 
-        except json.decoder.JSONDecodeError as erro:
+        except JSONDecodeError as erro:
             print(erro)
             _dados_recebidos_invalidos()
 
@@ -319,7 +315,8 @@ class MenuUsuarios(Interface):
         try:
             self.soquete.send(codificar(PedidoAtualizarListaClientes(self.dados_cliente)))
 
-            return descodificar(self.soquete.recv(BUFFER), [Usuario])
+            dados_recebidos = self.soquete.recv(BUFFER)
+            return descodificar(dados_recebidos, [Usuario])
 
         except ConnectionResetError as erro:
             print(erro)
@@ -341,13 +338,13 @@ class MenuUsuarios(Interface):
             except AttributeError:
                 exit()
 
-        except json.decoder.JSONDecodeError as erro:
-            print(erro)
+        except JSONDecodeError:
             _dados_recebidos_invalidos()
             self.soquete.close()
             try:
                 self.main_frame.destroy()
                 Login(self._tk)
+
             except AttributeError:
                 exit()
 
@@ -432,7 +429,8 @@ class MenuGrupos(Interface):
         try:
             self.soquete.send(codificar(PedidoAtualizarListaGrupos(self.dados_cliente)))
 
-            return descodificar(self.soquete.recv(BUFFER), [Grupo])
+            dados_recebidos = self.soquete.recv(BUFFER)
+            return descodificar(dados_recebidos, [Grupo])
 
         except ConnectionResetError as erro:
             print(erro)
@@ -454,13 +452,13 @@ class MenuGrupos(Interface):
             except AttributeError:
                 exit()
 
-        except json.decoder.JSONDecodeError as erro:
-            print(erro)
+        except JSONDecodeError:
             _dados_recebidos_invalidos()
             self.soquete.close()
             try:
                 self.main_frame.destroy()
                 Login(self._tk)
+
             except AttributeError:
                 exit()
 
@@ -525,12 +523,12 @@ class ChatUsuario(Interface):
         self.main_frame.pack(fill=X)
 
         self.recv_area = ScrolledText(self.main_frame, font=FONTE_CHAT_MENSAGEM_RECEBIDA,
-                                      borderwidth=2, width=80, height=20)
+                                      borderwidth=2, width=60, height=15)
         self.recv_area.configure(state=DISABLED, wrap=WORD)
         self.recv_area.grid(row=0, column=0)
 
         self.send_area = ScrolledText(self.main_frame, font=FONTE_CHAT_MENSAGEM_ENVIADA,
-                                      borderwidth=2, width=80, height=5)
+                                      borderwidth=2, width=60, height=5)
         self.send_area.configure(wrap=WORD)
         self.send_area.grid(row=2, column=0)
 
@@ -545,7 +543,8 @@ class ChatUsuario(Interface):
         try:
             self.soquete.send(codificar(PedidoMensagensPrivadasArquivadas(self.dados_cliente, self.destinatario)))
 
-            mensagens_arquivadas = descodificar(self.soquete.recv(BUFFER), [MensagemPrivada])
+            dados_recebidos = self.soquete.recv(BUFFER)
+            mensagens_arquivadas = descodificar(dados_recebidos, [MensagemPrivada])
 
             if mensagens_arquivadas:
                 for mensagem in mensagens_arquivadas:
@@ -572,13 +571,13 @@ class ChatUsuario(Interface):
             except AttributeError:
                 exit()
 
-        except json.decoder.JSONDecodeError as erro:
-            print(erro)
+        except JSONDecodeError:
             _dados_recebidos_invalidos()
             self.soquete.close()
             try:
                 self.main_frame.destroy()
                 Login(self._tk)
+
             except AttributeError:
                 exit()
 
@@ -636,7 +635,7 @@ class ChatUsuario(Interface):
                 self.send_area.see(END)
                 break
 
-            except json.decoder.JSONDecodeError as erro:
+            except JSONDecodeError as erro:
                 print(erro)
                 _dados_recebidos_invalidos()
                 self.send_area.insert(END, "DESCONECTADO DO CHAT")
@@ -693,12 +692,12 @@ class ChatGrupo(Interface):
         self.main_frame.pack(fill=X)
 
         self.recv_area = ScrolledText(self.main_frame, font=FONTE_CHAT_MENSAGEM_RECEBIDA,
-                                      borderwidth=2, width=80, height=20)
+                                      borderwidth=2, width=60, height=15)
         self.recv_area.configure(state=DISABLED, wrap=WORD)
         self.recv_area.grid(row=0, column=0)
 
         self.send_area = ScrolledText(self.main_frame, font=FONTE_CHAT_MENSAGEM_ENVIADA,
-                                      borderwidth=2, width=80, height=5)
+                                      borderwidth=2, width=60, height=5)
         self.send_area.configure(wrap=WORD)
         self.send_area.grid(row=2, column=0)
 
@@ -740,7 +739,7 @@ class ChatGrupo(Interface):
             except AttributeError:
                 exit()
 
-        except json.decoder.JSONDecodeError as erro:
+        except JSONDecodeError as erro:
             print(erro)
             _dados_recebidos_invalidos()
             self.soquete.close()
@@ -804,7 +803,7 @@ class ChatGrupo(Interface):
                 self.send_area.see(END)
                 break
 
-            except json.decoder.JSONDecodeError as erro:
+            except JSONDecodeError as erro:
                 print(erro)
                 _dados_recebidos_invalidos()
                 self.send_area.insert(END, "DESCONECTADO DO CHAT")
@@ -817,7 +816,7 @@ class ChatGrupo(Interface):
             self.soquete.send(codificar(None))
             self.receber_mensagens.join()
             self.main_frame.destroy()
-            MenuUsuarios(self._tk, self.dados_cliente, self.soquete)
+            MenuGrupos(self._tk, self.dados_cliente, self.soquete)
 
         except ConnectionResetError as erro:
             print(erro)
@@ -930,7 +929,7 @@ class CadastroGrupo(Interface):
             except AttributeError:
                 exit()
 
-        except json.decoder.JSONDecodeError as erro:
+        except JSONDecodeError as erro:
             print(erro)
             _dados_recebidos_invalidos()
             self.soquete.close()

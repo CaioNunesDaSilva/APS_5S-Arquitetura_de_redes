@@ -1,6 +1,5 @@
 from enum import Enum
-from json import dumps
-from json import loads
+from json import dumps, loads
 
 
 class TipoPedido(Enum):

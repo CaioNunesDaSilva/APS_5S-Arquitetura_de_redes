@@ -1,14 +1,12 @@
-try:
-    from tkinter import Tk
-    from tkinter.messagebox import showerror
+from tkinter import Tk
+from tkinter.messagebox import showerror
 
-    from interface import Login
-
-except ImportError:
-    print("Erro na importacao de modululos necessarios para inicar o programa")
-    input()
-    exit()
+from interface import Login
 
 if __name__ == "__main__":
-    tela = Tk()
-    Login(tela)
+    try:
+        tela = Tk()
+        Login(tela)
+
+    except Exception as erro:
+        showerror(title="ERRO", message=f"Ocorreu o erro {type(erro)}: {erro}, reinicie o programa")
