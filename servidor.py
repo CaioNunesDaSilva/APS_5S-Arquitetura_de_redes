@@ -18,6 +18,10 @@ def aceitar_conexao():
             print("SERVIDOR FECHADO PARA CONEXOES")
             break
 
+        except Exception as erro:
+            print(f"OCORREU O ERRO {type(erro)}: {erro}")
+            break
+
 
 def controlador_cliente(conexao, endereco):
     global CLIENTES
@@ -33,21 +37,23 @@ def controlador_cliente(conexao, endereco):
                 if pedido.tipo == TipoPedido.CADASTRO_USUARIO:
                     print(f"PEDIDO DE CADASTRO DE: {pedido.nome} NA A CONEXAO {conexao}")
 
-                    conexao.send(codificar(debug_cadastrar(pedido.nome, pedido.senha)))
+                    conexao.send(codificar(cadastrar_usuario(pedido.nome, pedido.senha)))
                     conexao.close()
                     break
 
                 elif pedido.tipo == TipoPedido.LOGIN:
                     print(f"PEDIDO DE LOGIN DE: {pedido.nome} NA A CONEXAO {conexao}")
 
-                    cliente = debug_login(pedido.nome, pedido.senha)
+                    cliente = login(pedido.nome, pedido.senha)
 
                     if cliente:
                         CLIENTES.append(cliente)
                         CONEXOES.append(conexao)
                         RECEBER_MENSAGENS.append([False, False])
+                        conexao.send(codificar(Usuario.clonar(cliente)))
 
-                    conexao.send(codificar(Usuario.clonar(cliente)))
+                    else:
+                        conexao.send(codificar(None))
 
                 elif pedido.tipo == TipoPedido.ATUALIZAR_LISTA_CLIENTES:
                     print(f"PEDIDO DA LISTA DE USUARIOS PARA {pedido.remetente.nome} NA A CONEXAO {conexao}")
@@ -87,12 +93,12 @@ def controlador_cliente(conexao, endereco):
                                 conexao.send(codificar(MensagemPrivada(Usuario(0, "Servidor"),
                                                                        "Usuario não esta disponivel",
                                                                        pedido.remetente.nome)))
-                                debug_arquivar_mensagem_privada(pedido)
+                                arquivar_mensagens_privadas(pedido)
 
                             break
 
                     else:
-                        debug_arquivar_mensagem_privada(pedido)
+                        arquivar_mensagens_privadas(pedido)
 
                 elif pedido.tipo == TipoPedido.MENSSAGEM_GRUPO:
                     print(f"MENSAGENS DE {pedido.remetente.nome} NO GRUPO {pedido.grupo} NA CONEXAO {conexao}")
@@ -107,15 +113,15 @@ def controlador_cliente(conexao, endereco):
                                     usuarios_nao_disponiveis.append(cliente)
 
                             if usuarios_nao_disponiveis:
-                                debug_arquivar_mensagem_grupo(pedido, usuarios_nao_disponiveis)
+                                arquivar_mensagens_grupo(pedido, usuarios_nao_disponiveis)
 
                             break
 
                 elif pedido.tipo == TipoPedido.CADASTRO_GRUPO:
                     print(f"PEDIDO DE CADASTRO DE GRUPO POR {pedido.remetente.nome} NA CONEXAO {conexao}")
 
-                    conexao.send(codificar(debug_cadastrar_grupo(pedido.nome, pedido.integrantes)))
-                    GRUPOS = debug_carregar_grupos()
+                    conexao.send(codificar(cadastrar_grupo(pedido.nome, pedido.integrantes, pedido.remetente)))
+                    GRUPOS = carregar_grupos()
 
                 elif pedido.tipo == TipoPedido.DESCONECTAR:
                     print(f"PEDIDO DE DESCONEXAO POR {pedido.remetente.nome} NA CONEXAO {conexao}")
@@ -134,7 +140,7 @@ def controlador_cliente(conexao, endereco):
 
                     RECEBER_MENSAGENS[CONEXOES.index(conexao)][0] = True
 
-                    conexao.send(codificar(debug_mensagens_privadas_arquivadas(pedido.chat, pedido.remetente.nome)))
+                    conexao.send(codificar(mensagens_privadas_arquivadas(pedido.chat, pedido.remetente.nome)))
 
                 elif pedido.tipo == TipoPedido.MENSAGEMS_GRUPO_ARQUIVADAS:
                     print(f"PEDIDO DE ENVIO DE MENSAGENS DE GRUPO ARQUIVADAS"
@@ -142,7 +148,7 @@ def controlador_cliente(conexao, endereco):
 
                     RECEBER_MENSAGENS[CONEXOES.index(conexao)][1] = True
 
-                    conexao.send(codificar(debug_mensagens_grupo_arquivadas(pedido.grupo, pedido.remetente.nome)))
+                    conexao.send(codificar(mensagens_grupo_arquivadas(pedido.grupo, pedido.remetente.nome)))
 
             else:
                 conexao.send(codificar(None))
@@ -181,55 +187,77 @@ def controlador_cliente(conexao, endereco):
         # except:
         # TODO tratamento de erro do banco de dados
 
+        except Exception as erro:
+            print(f"OCOREU O ERRO {type(erro)}: {erro}")
+            try:
+                CLIENTES.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS.pop(CONEXOES.index(conexao))
+                conexao.close()
+            except AttributeError:
+                pass
+
+            except ValueError:
+                pass
+            break
+
 
 if __name__ == "__main__":
-    # try:
-    CLIENTES = []
-    CONEXOES = []
-    RECEBER_MENSAGENS = []
-    GRUPOS = debug_carregar_grupos()
+    try:
+        CLIENTES = []
+        CONEXOES = []
+        RECEBER_MENSAGENS = []
+        GRUPOS = carregar_grupos()
+
+        soquete = socket(AF_INET, SOCK_STREAM)
+        soquete.bind((SOCKET_ENDERECO, SOCKET_PORTA))
+        soquete.listen()
+
+        thread_aceitar_conexao = Thread(target=aceitar_conexao)
+        thread_aceitar_conexao.start()
+        print("SERVIDOR AGUARDANDO CONEXOES...")
+
+    except Exception as erro:
+        print(f"OCORREU O ERRO {type(erro)}: {erro} DURANTE A INICIALIZAÇÃO DO SERVIDOR")
+        exit()
 
     # except:
     # TODO tratamento de erro do banco de dados
 
     try:
-        soquete = socket(AF_INET, SOCK_STREAM)
-        soquete.bind((SOCKET_ENDERECO, SOCKET_PORTA))
-        soquete.listen()
-        print("SERVIDOR AGUARDANDO CONEXOES...")
+        while True:
+            comando = input("SERVIDOR ACEITANDO COMANDOS...\n")
+
+            if comando.upper() == "SAIR":
+                soquete.close()
+                exit()
+                print("AINDA A USUARIOS CONECTADOS, AGUARDE...")
+
+            elif comando.upper() == "FECHAR":
+                soquete.close()
+
+            elif comando.upper() == "ABRIR":
+                if not thread_aceitar_conexao.is_alive():
+                    soquete = socket(AF_INET, SOCK_STREAM)
+                    soquete.bind((SOCKET_ENDERECO, SOCKET_PORTA))
+                    soquete.listen()
+
+                    thread_aceitar_conexao = Thread(target=aceitar_conexao)
+                    thread_aceitar_conexao.start()
+                    print("SERVIDOR AGUARDANDO CONEXOES...")
+
+                else:
+                    print("SERVIDOR JA ESTA ABERTO A CONEXOES")
+
+            else:
+                print("COMANDO INVALIDO")
+
+    except OSError:
+        print("OCORREU UM ERRO NO SOQUETE")
+        try:
+            soquete.close()
+        except AttributeError:
+            pass
 
     except Exception as erro:
-        print(f"ERRO: {erro}\n FALHA NA INICIALIZAÇÃO DO SOQUETE")
-        input("...")
+        print(f"OCORREU O ERRO {type(erro)}: {erro} DURANTE A EXECUCAO DO COMANDO")
         exit()
-
-    Thread(target=aceitar_conexao).start()
-
-    while True:
-        comando = input("SERVIDOR ACEITANDO COMANDOS...\n")
-
-        if comando.upper() == "SAIR":
-            soquete.close()
-            exit()
-            print("AINDA A USUARIOS CONECTADOS, AGUARDE...")
-
-        elif comando.upper() == "FECHAR":
-            soquete.close()
-
-        elif comando.upper() == "ABRIR":
-            try:
-                soquete = socket(AF_INET, SOCK_STREAM)
-                soquete.bind((SOCKET_ENDERECO, SOCKET_PORTA))
-                soquete.listen()
-                print("SERVIDOR AGUARDANDO CONEXOES...")
-
-            except Exception as erro:
-                print(f"ERRO: {erro}\n FALHA NA INICIALIZAÇÃO DO SOQUETE")
-                input("...")
-                exit()
-
-            Thread(target=aceitar_conexao).start()
-
-
-
-

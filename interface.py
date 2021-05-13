@@ -85,42 +85,49 @@ class Login(Interface):
         Cadastro(self._tk)
 
     def __acao_btn_logon(self):
-        soquete = socket(AF_INET, SOCK_STREAM)
+        nome = self.entry_name.get().strip()
+        senha = self.entry_pswd.get().strip()
 
-        try:
-            soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
+        if bool(nome) and bool(senha):
+            soquete = socket(AF_INET, SOCK_STREAM)
 
-            soquete.send(codificar(PedidoLogin(self.entry_name.get().strip(), self.entry_pswd.get().strip())))
+            try:
+                soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
 
-            dados_cliente = descodificar(soquete.recv(BUFFER), Usuario)
+                soquete.send(codificar(PedidoLogin(nome, senha)))
 
-            if dados_cliente:
-                self.main_frame.destroy()
-                MenuPrincipal(self._tk, dados_cliente, soquete)
-            else:
-                showerror(title="ERRO", message="Usuario nao cadastrado")
+                dados_cliente = descodificar(soquete.recv(BUFFER), Usuario)
+
+                if dados_cliente:
+                    self.main_frame.destroy()
+                    MenuPrincipal(self._tk, dados_cliente, soquete)
+                else:
+                    showerror(title="ERRO", message="Usuario nao cadastrado")
+                    soquete.close()
+                    self.__limpar_campos()
+
+            except ConnectionRefusedError as erro:
+                print(erro)
+                _conexao_recusada()
                 soquete.close()
-                self.__limpar_campos()
 
-        except ConnectionRefusedError as erro:
-            print(erro)
-            _conexao_recusada()
-            soquete.close()
+            except ConnectionAbortedError as erro:
+                print(erro)
+                _conexao_abortada()
+                soquete.close()
 
-        except ConnectionAbortedError as erro:
-            print(erro)
-            _conexao_abortada()
-            soquete.close()
+            except ConnectionResetError as erro:
+                print(erro)
+                _conexao_resetada()
+                soquete.close()
 
-        except ConnectionResetError as erro:
-            print(erro)
-            _conexao_resetada()
-            soquete.close()
+            except JSONDecodeError as erro:
+                print(erro)
+                _dados_recebidos_invalidos()
+                soquete.close()
 
-        except JSONDecodeError as erro:
-            print(erro)
-            _dados_recebidos_invalidos()
-            soquete.close()
+        else:
+            showerror(title="ERRO", message="Digite o nome e senha")
 
     def _fechar(self):
         self._tk.destroy()
@@ -176,38 +183,44 @@ class Cadastro(Interface):
         Login(self._tk)
 
     def __acao_btn_n_usr(self):
-        soquete = socket(AF_INET, SOCK_STREAM)
+        nome = self.entry_name.get().strip()
+        senha = self.entry_pswd.get().strip()
 
-        try:
-            soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
+        if bool(nome) and bool(senha):
+            soquete = socket(AF_INET, SOCK_STREAM)
 
-            soquete.send(codificar(PedidoCadastroUsuario(str(self.entry_name.get()).strip(),
-                                                         str(self.entry_pswd.get()).strip())))
+            try:
+                soquete.connect((SOCKET_ENDERECO, SOCKET_PORTA))
 
-            if descodificar(soquete.recv(BUFFER), bool):
-                showinfo(title="AVISO", message="Usuario cadastrado com sucesso")
-            else:
-                showerror(title="ERRO", message="Usuario ja cadastrado")
+                soquete.send(codificar(PedidoCadastroUsuario(nome, senha)))
 
-        except ConnectionRefusedError as erro:
-            print(erro)
-            _conexao_recusada()
+                if descodificar(soquete.recv(BUFFER), bool):
+                    showinfo(title="AVISO", message="Usuario cadastrado com sucesso")
+                else:
+                    showerror(title="ERRO", message="Usuario ja cadastrado")
 
-        except ConnectionAbortedError as erro:
-            print(erro)
-            _conexao_abortada()
+            except ConnectionRefusedError as erro:
+                print(erro)
+                _conexao_recusada()
 
-        except ConnectionResetError as erro:
-            print(erro)
-            _conexao_resetada()
+            except ConnectionAbortedError as erro:
+                print(erro)
+                _conexao_abortada()
 
-        except JSONDecodeError as erro:
-            print(erro)
-            _dados_recebidos_invalidos()
+            except ConnectionResetError as erro:
+                print(erro)
+                _conexao_resetada()
 
-        finally:
-            soquete.close()
-            self.__limpar_campos()
+            except JSONDecodeError as erro:
+                print(erro)
+                _dados_recebidos_invalidos()
+
+            finally:
+                soquete.close()
+                self.__limpar_campos()
+
+        else:
+            showerror(title="ERRO", message="Digite o nome e a senha")
 
     def _fechar(self):
         self._tk.destroy()
@@ -895,10 +908,10 @@ class CadastroGrupo(Interface):
         self.entry_members.delete(0, "end")
 
     def __acao_btn_nw_group(self):
+        nome = str(self.entry_name.get()).strip()
+        integrantes = str(self.entry_members.get()).strip().split(",")
         try:
-            self.soquete.send(codificar(PedidoCadastroGrupo(self.dados_cliente,
-                                                            str(self.entry_name.get()).strip(),
-                                                            str(self.entry_members.get()).strip().split(","))))
+            self.soquete.send(codificar(PedidoCadastroGrupo(self.dados_cliente, nome, integrantes)))
 
             resultado = descodificar(self.soquete.recv(BUFFER), bool)
 
