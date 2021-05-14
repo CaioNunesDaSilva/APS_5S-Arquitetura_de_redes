@@ -18,9 +18,6 @@ def aceitar_conexao():
             print("SERVIDOR FECHADO PARA CONEXOES")
             break
 
-        except Exception as erro:
-            print(f"OCORREU O ERRO {type(erro)}: {erro}")
-            break
 
 
 def controlador_cliente(conexao, endereco):
@@ -52,8 +49,7 @@ def controlador_cliente(conexao, endereco):
                         RECEBER_MENSAGENS.append([False, False])
                         conexao.send(codificar(Usuario.clonar(cliente)))
 
-                    else:
-                        conexao.send(codificar(None))
+                    conexao.send(codificar(cliente))
 
                 elif pedido.tipo == TipoPedido.ATUALIZAR_LISTA_CLIENTES:
                     print(f"PEDIDO DA LISTA DE USUARIOS PARA {pedido.remetente.nome} NA A CONEXAO {conexao}")
@@ -187,38 +183,21 @@ def controlador_cliente(conexao, endereco):
         # except:
         # TODO tratamento de erro do banco de dados
 
-        except Exception as erro:
-            print(f"OCOREU O ERRO {type(erro)}: {erro}")
-            try:
-                CLIENTES.pop(CONEXOES.index(conexao))
-                RECEBER_MENSAGENS.pop(CONEXOES.index(conexao))
-                conexao.close()
-            except AttributeError:
-                pass
-
-            except ValueError:
-                pass
-            break
-
 
 if __name__ == "__main__":
-    try:
-        CLIENTES = []
-        CONEXOES = []
-        RECEBER_MENSAGENS = []
-        GRUPOS = carregar_grupos()
+    CLIENTES = []
+    CONEXOES = []
+    RECEBER_MENSAGENS = []
+    GRUPOS = carregar_grupos()
 
-        soquete = socket(AF_INET, SOCK_STREAM)
-        soquete.bind((SOCKET_ENDERECO, SOCKET_PORTA))
-        soquete.listen()
+    soquete = socket(AF_INET, SOCK_STREAM)
+    soquete.bind((SOCKET_ENDERECO, SOCKET_PORTA))
+    soquete.listen()
 
-        thread_aceitar_conexao = Thread(target=aceitar_conexao)
-        thread_aceitar_conexao.start()
-        print("SERVIDOR AGUARDANDO CONEXOES...")
+    thread_aceitar_conexao = Thread(target=aceitar_conexao)
+    thread_aceitar_conexao.start()
+    print("SERVIDOR AGUARDANDO CONEXOES...")
 
-    except Exception as erro:
-        print(f"OCORREU O ERRO {type(erro)}: {erro} DURANTE A INICIALIZAÇÃO DO SERVIDOR")
-        exit()
 
     # except:
     # TODO tratamento de erro do banco de dados
@@ -257,7 +236,3 @@ if __name__ == "__main__":
             soquete.close()
         except AttributeError:
             pass
-
-    except Exception as erro:
-        print(f"OCORREU O ERRO {type(erro)}: {erro} DURANTE A EXECUCAO DO COMANDO")
-        exit()

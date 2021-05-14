@@ -293,7 +293,11 @@ def descodificar(dados, classe):
         return dict(loads(dados))
 
     elif classe == Usuario:
-        return Usuario.Usuario_from_dict(loads(dados))
+        dados = loads(dados)
+        if dados:
+            return Usuario.Usuario_from_dict(dados)
+        else:
+            return None
 
     elif classe == [Usuario]:
         lista_usuarios = []

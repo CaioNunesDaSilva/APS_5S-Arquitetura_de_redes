@@ -11,7 +11,7 @@ from constantes import BANCO_DE_DADOS_SENHA
 
 
 def __conectar(host=BANCO_DE_DADOS_ENDERECO, database=BANCO_DE_DADOS_NOME,
-               user=BANCO_DE_DADOS_USUARIO, password=BANCO_DE_DADOS_SENHA):
+               user=BANCO_DE_DADOS_USUARIO, password=BANCO_DE_DADOS_SENHA) -> MySQL.MySQLConnection:
     conexao = MySQL.connect(host=host, database=database, user=user, password=password)
     if conexao.is_connected():
         return conexao
@@ -23,30 +23,53 @@ def __select(conexao: MySQL.MySQLConnection, campos: str, tabela: str, condicao=
         cursor.execute(f"SELECT {campos} FROM {tabela} WHERE {condicao};")
     else:
         cursor.execute(f"SELECT {campos} FROM {tabela};")
-    return cursor.fetchall()
+    selecao = cursor.fetchall()
+
+    if isinstance(selecao, tuple):
+        lista = []
+        for linha in selecao:
+            lista.append(linha)
+        selecao = lista
+
+    for indice, linha in enumerate(selecao):
+        if isinstance(linha, tuple):
+            if len(linha) < 1:
+                selecao.pop(indice)
+            elif len(linha) == 1:
+                selecao[indice] = linha[0]
+
+    if len(selecao) == 1:
+        if isinstance(selecao[0], tuple):
+            lista = []
+            for linha in selecao[0]:
+                lista.append(linha)
+            selecao = lista
+        else:
+            selecao = selecao[0]
+
+    return selecao
 
 
-def __insert(conexao: MySQL.MySQLConnection, tabela_campos: str, valores: str):
+def __insert(conexao: MySQL.MySQLConnection, tabela_campos: str, valores: tuple):
     cursor = conexao.cursor()
     cursor.execute(f"INSERT INTO {tabela_campos} VALUES {valores};")
-    conexao.commit()
 
 
 def __update(conexao: MySQL.MySQLConnection, tabela: str, coluna_valor: str, condicao: str):
     cursor = conexao.cursor()
     cursor.execute(f"UPDATE {tabela} SET {coluna_valor} WHERE {condicao};")
-    conexao.commit()
 
 
 def __delete(conexao: MySQL.MySQLConnection, tabela: str, condicao: str):
     cursor = conexao.cursor()
     cursor.execute(f"DELETE FROM {tabela} WHERE {condicao};")
-    conexao.commit()
 
 
 def __desconectar(conexao: MySQL.MySQLConnection, cursor=None, rollback=False):
     if rollback:
         conexao.rollback()
+    else:
+        conexao.commit()
     if cursor:
         cursor.close()
     conexao.close()
@@ -59,7 +82,7 @@ def cadastrar_usuario(nome: str, senha: str) -> bool:
         __desconectar(conexao)
         return False
     else:
-        __insert(conexao, "usuarios (nm_usuario, cd_senha)", f"({nome}, {senha})")
+        __insert(conexao, "usuarios (nm_usuario, cd_senha)", (nome, senha))
         __desconectar(conexao)
         return True
 
@@ -72,20 +95,20 @@ def cadastrar_grupo(nome: str, integrantes: [str], dono: Usuario) -> bool:
         __desconectar(conexao)
         return False
     else:
-        __insert(conexao, "grupos(nm_grupo, cd_dono)", f"({nome}, {dono.codigo})")
+        __insert(conexao, "grupos(nm_grupo, cd_dono)", (nome, dono.codigo))
         dados = __select(conexao, "cd_grupo", "grupos", f"nm_grupo='{nome}'")
         if dados:
             for nome_integrante in integrantes:
                 codigo_integrante = __select(conexao, "cd_usuario", "usuarios", f"nm_usuario='{nome_integrante}'")
-                __insert(conexao, "membros_grupo(fk_usuario, fk_grupo)", f"({codigo_integrante}, {dados})")
+                __insert(conexao, "membros_grupo(fk_usuario, fk_grupo)", (codigo_integrante, dados))
                 check = __select(conexao, "*", "membros_grupo",
                                  f"fk_usuario={codigo_integrante} and fk_grupo={dados}")
                 if not check:
                     __desconectar(conexao, rollback=True)
                     raise MySQL.Error("insert nao executado")
 
-            __desconectar(conexao)
-            return True
+                __desconectar(conexao)
+                return True
 
         else:
             __desconectar(conexao, rollback=True)
@@ -113,7 +136,8 @@ def carregar_grupos() -> [Grupo]:
             dados_dono = __select(conexao, "cd_usuario, nm_usuario", "usuarios", f"cd_usuario='{dados_grupo[2]}'")
             dono = Usuario(dados_dono[0], dados_dono[1])
             lista_membros = []
-            for codigo_membro in __select(conexao, "fk_usuario", "membros_grupo", f"fk_grupo={dados_grupo[0]}"):
+            codigos_membros = __select(conexao, "fk_usuario", "membros_grupo", f"fk_grupo={dados_grupo[0]}")
+            for codigo_membro in codigos_membros:
                 dados_membro = __select(conexao, "cd_usuario, nm_usuario", "usuario", f"cd_usuario={codigo_membro}")
                 lista_membros.append(Usuario(dados_membro[0], dados_membro[1]))
             lista_grupos.append(Grupo(dados_grupo[0], dados_grupo[1], lista_membros, dono))
@@ -164,7 +188,7 @@ def arquivar_mensagens_privadas(mensagem: MensagemPrivada):
     conexao = __conectar()
     destinatario_codigo = __select(conexao, "cd_usuario", "usuarios", f"nm_usuario='{mensagem.destinatario}'")
     __insert(conexao, "mensagens_privadas (fk_remetente, fk_destinatario, ds_mensagem, bl_recebido)",
-             f"({mensagem.remetente.codigo}, {destinatario_codigo}, '{mensagem.mensagem}', 0)")
+             (mensagem.remetente.codigo, destinatario_codigo, mensagem.mensagem, 0))
     __desconectar(conexao)
 
 
@@ -172,7 +196,7 @@ def arquivar_mensagens_grupo(mensagem: MensagemGrupo, usuarios_nao_disponiveis: 
     conexao = __conectar()
     codigo_grupo = __select(conexao, "cd_grupo", "grupos", f"nm_grupo='{mensagem.grupo}'")
     __insert(conexao, "mensagens_grupo (fk_usuario, fk_grupo, ds_mensagem)",
-             f"({mensagem.remetente.codigo}, {codigo_grupo}, '{mensagem.mensagem}')")
+             (mensagem.remetente.codigo, codigo_grupo, mensagem.mensagem))
     codigo_mensagem = __select(conexao, "cd_mensagem", "mensagens_grupo",
                                f"fk_usuario={mensagem.remetente.codigo} and "
                                f"fk_grupo={codigo_grupo} and "
@@ -180,9 +204,9 @@ def arquivar_mensagens_grupo(mensagem: MensagemGrupo, usuarios_nao_disponiveis: 
     if codigo_mensagem:
         for usuario_nao_disponivel in usuarios_nao_disponiveis:
             codigo_usuario_nao_disponivel = __select(conexao, "cd_usuario", "usuarios",
-                                                     f"nm_usuario='{usuario_nao_disponivel}'")
+                                                     f"nm_usuario='{usuario_nao_disponivel.nome}'")
             __insert(conexao, "mensagem_grupo_recebido (fk_mensagem_grupo, fk_usuario, bl_recebido)",
-                     f"({codigo_mensagem}, {codigo_usuario_nao_disponivel}, 0)")
+                     (codigo_mensagem, codigo_usuario_nao_disponivel, 0))
             check = __select(conexao, "*", "mensagem_grupo_recebido",
                              f"fk_mensagem_grupo={codigo_mensagem} and fk_usuario={codigo_usuario_nao_disponivel}")
             if not check:
