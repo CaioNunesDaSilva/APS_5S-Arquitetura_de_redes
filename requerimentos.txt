@@ -1,3 +1,7 @@
->MySQLConnector
- Windows: pip install mysql-connector-python
- Linux: apt install python3-pip
+Servidor:
+	>MySQLConnector
+ 	 Windows: pip install mysql-connector-python
+ 	 Linux: apt install python3-pip
+	
+	>MySQL Server
+	 https://dev.mysql.com/downloads/mysql/

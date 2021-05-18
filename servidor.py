@@ -19,7 +19,6 @@ def aceitar_conexao():
             break
 
 
-
 def controlador_cliente(conexao, endereco):
     global CLIENTES
     global GRUPOS
@@ -151,29 +150,41 @@ def controlador_cliente(conexao, endereco):
 
         except ConnectionAbortedError:
             print(f"CONEXAO {conexao} ABORTADA DEVIDO A FALTA DE RESPOSTA")
-            CLIENTES.pop(CONEXOES.index(conexao))
-            RECEBER_MENSAGENS.pop(CONEXOES.index(conexao))
+            try:
+                CLIENTES.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS.pop(CONEXOES.index(conexao))
+            except ValueError:
+                pass
             conexao.close()
             break
 
         except ConnectionResetError:
             print(f"CONEXAO {conexao} FOI FECHADA ABRUPTAMENTE")
-            CLIENTES.pop(CONEXOES.index(conexao))
-            RECEBER_MENSAGENS.pop(CONEXOES.index(conexao))
+            try:
+                CLIENTES.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS.pop(CONEXOES.index(conexao))
+            except ValueError:
+                pass
             conexao.close()
             break
 
         except JSONDecodeError:
             print(f"DADOS INVALIDOS RECEBIDOS NA CONEXAO {conexao}")
-            RECEBER_MENSAGENS.pop(CONEXOES.index(conexao))
-            CLIENTES.pop(CONEXOES.index(conexao))
+            try:
+                CLIENTES.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS.pop(CONEXOES.index(conexao))
+            except ValueError:
+                pass
             conexao.close()
             break
 
         except AttributeError:
             print(f"DADOS EM FORMATO INVALIDO ENCONTRADOS NA CONEXAO {conexao}")
-            CLIENTES.pop(CONEXOES.index(conexao))
-            RECEBER_MENSAGENS.pop(CONEXOES.index(conexao))
+            try:
+                CLIENTES.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS.pop(CONEXOES.index(conexao))
+            except ValueError:
+                pass
             try:
                 conexao.close()
             except AttributeError:

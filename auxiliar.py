@@ -300,19 +300,31 @@ def descodificar(dados, classe):
             return None
 
     elif classe == [Usuario]:
-        lista_usuarios = []
-        for usuario in descodificar(dados, list):
-            lista_usuarios.append(descodificar(usuario, Usuario))
-        return lista_usuarios
+        dados = loads(dados)
+        if dados:
+            lista_usuarios = []
+            for usuario in descodificar(dados, list):
+                lista_usuarios.append(descodificar(usuario, Usuario))
+            return lista_usuarios
+        else:
+            return None
 
     elif classe == Grupo:
-        return Grupo.Grupo_from_dict(loads(dados))
+        dados = loads(dados)
+        if dados:
+            return Grupo.Grupo_from_dict(loads(dados))
+        else:
+            return None
 
     elif classe == [Grupo]:
-        lista_grupo = []
-        for grupo in descodificar(dados, list):
-            lista_grupo.append(descodificar(grupo, Grupo))
-        return lista_grupo
+        dados = loads(dados)
+        if dados:
+            lista_grupo = []
+            for grupo in descodificar(dados, list):
+                lista_grupo.append(descodificar(grupo, Grupo))
+            return lista_grupo
+        else:
+            return None
 
     elif classe == Pedido:
         if dados:

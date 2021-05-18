@@ -17,7 +17,7 @@ def __conectar(host=BANCO_DE_DADOS_ENDERECO, database=BANCO_DE_DADOS_NOME,
         return conexao
 
 
-def __select(conexao: MySQL.MySQLConnection, campos: str, tabela: str, condicao=None):
+def __select(conexao: MySQL.MySQLConnection, campos: str, tabela: str, condicao=None) -> list:
     cursor = conexao.cursor()
     if condicao:
         cursor.execute(f"SELECT {campos} FROM {tabela} WHERE {condicao};")
@@ -38,14 +38,11 @@ def __select(conexao: MySQL.MySQLConnection, campos: str, tabela: str, condicao=
             elif len(linha) == 1:
                 selecao[indice] = linha[0]
 
-    if len(selecao) == 1:
-        if isinstance(selecao[0], tuple):
-            lista = []
-            for linha in selecao[0]:
-                lista.append(linha)
-            selecao = lista
-        else:
-            selecao = selecao[0]
+    if len(selecao) == 1 and isinstance(selecao[0], tuple):
+        lista = []
+        for celula in selecao[0]:
+            lista.append(celula)
+        selecao = lista
 
     return selecao
 
@@ -136,9 +133,9 @@ def carregar_grupos() -> [Grupo]:
             dados_dono = __select(conexao, "cd_usuario, nm_usuario", "usuarios", f"cd_usuario='{dados_grupo[2]}'")
             dono = Usuario(dados_dono[0], dados_dono[1])
             lista_membros = []
-            codigos_membros = __select(conexao, "fk_usuario", "membros_grupo", f"fk_grupo={dados_grupo[0]}")
+            codigos_membros = list(__select(conexao, "fk_usuario", "membros_grupo", f"fk_grupo={dados_grupo[0]}"))
             for codigo_membro in codigos_membros:
-                dados_membro = __select(conexao, "cd_usuario, nm_usuario", "usuario", f"cd_usuario={codigo_membro}")
+                dados_membro = __select(conexao, "cd_usuario, nm_usuario", "usuarios", f"cd_usuario={codigo_membro}")
                 lista_membros.append(Usuario(dados_membro[0], dados_membro[1]))
             lista_grupos.append(Grupo(dados_grupo[0], dados_grupo[1], lista_membros, dono))
     __desconectar(conexao)
@@ -154,7 +151,7 @@ def mensagens_privadas_arquivadas(remetente_chat: str, destinatario_chat: str) -
                                f"fk_remetente={codigo_remetente_chat} and fk_destinatario={codigo_destinatario_chat}"
                                f" and bl_recibido=0")
     for dados_mensagem in dados_mensagens:
-        lista_mensagens.append(MensagemPrivada(Usuario(codigo_remetente_chat, remetente_chat),
+        lista_mensagens.append(MensagemPrivada(Usuario(codigo_remetente_chat[0], remetente_chat),
                                                dados_mensagem[1], destinatario_chat))
         __update(conexao, "mensagens_privadas", "bl_recebido=1", f"cd_mensagem_privada={dados_mensagem[0]}")
 
@@ -175,7 +172,7 @@ def mensagens_grupo_arquivadas(grupo: str, destinatario_chat: str) -> [MensagemG
                                f"mensagem_grupo_recebido.bl_recebido=0")
     for dados_mensagem in dados_mensagens:
         nome_remtente_chat = __select(conexao, "nm_usuario", "usuarios", f"cd_usuario={dados_mensagem[1]}")
-        lista_mensagens.append(MensagemGrupo(Usuario(dados_mensagem[1], nome_remtente_chat),
+        lista_mensagens.append(MensagemGrupo(Usuario(dados_mensagem[1], nome_remtente_chat[0]),
                                              dados_mensagem[2], destinatario_chat))
         __update(conexao, "mensagem_grupo_recebido", "bl_recebido=1",
                  f"fk_mensagem_grupo={dados_mensagem[0]} and fk_usuario={codigo_destinatario_chat}")
