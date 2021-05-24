@@ -51,9 +51,8 @@ class Usuario(Entidade, JSONserializable):
 
 
 class Grupo(Entidade, JSONserializable):
-    def __init__(self, codigo: int, nome: str, membros: [Usuario], dono: Usuario):
+    def __init__(self, codigo: int, nome: str, membros: [Usuario]):
         self.membros = membros
-        self.dono = dono
         super().__init__(codigo, nome)
 
     def to_json(self) -> str:
@@ -62,7 +61,6 @@ class Grupo(Entidade, JSONserializable):
         for indice, membro in enumerate(self.membros):
             self.membros[indice] = membro.to_json()
 
-        self.dono = self.dono.to_json()
 
         return super().to_json()
 
@@ -75,7 +73,7 @@ class Grupo(Entidade, JSONserializable):
         for membro in dic["membros"]:
             membros.append(descodificar(membro, Usuario))
 
-        return cls(int(dic["codigo"]), dic["nome"], membros, descodificar(dic["dono"], Usuario))
+        return cls(int(dic["codigo"]), dic["nome"], membros)
 
     @classmethod
     def clonar(cls, grupo: 'Grupo') -> 'Grupo':
@@ -89,7 +87,7 @@ class Grupo(Entidade, JSONserializable):
 
             membros.append(Usuario.clonar(membro))
 
-        return cls(int(grupo.codigo), grupo.nome, membros, Usuario.clonar(grupo.dono))
+        return cls(int(grupo.codigo), grupo.nome, membros)
 
 
 class Pedido(JSONserializable):
@@ -255,6 +253,7 @@ def codificar(dados) -> bytes:
         for chave, valor in dados.items():
             if isinstance(valor, JSONserializable):
                 dados[chave] = valor.to_json()
+
         return dumps(dados).encode()
 
     elif isinstance(dados, list):
@@ -300,11 +299,14 @@ def descodificar(dados, classe):
             return None
 
     elif classe == [Usuario]:
-        dados = loads(dados)
         if dados:
             lista_usuarios = []
-            for usuario in descodificar(dados, list):
-                lista_usuarios.append(descodificar(usuario, Usuario))
+            try:
+                usuarios = descodificar(dados, list)
+                for usuario in usuarios:
+                    lista_usuarios.append(descodificar(usuario, Usuario))
+            except TypeError:
+                lista_usuarios = []
             return lista_usuarios
         else:
             return None
@@ -312,16 +314,19 @@ def descodificar(dados, classe):
     elif classe == Grupo:
         dados = loads(dados)
         if dados:
-            return Grupo.Grupo_from_dict(loads(dados))
+            return Grupo.Grupo_from_dict(dados)
         else:
             return None
 
     elif classe == [Grupo]:
-        dados = loads(dados)
         if dados:
             lista_grupo = []
-            for grupo in descodificar(dados, list):
-                lista_grupo.append(descodificar(grupo, Grupo))
+            try:
+                grupos = descodificar(dados, list)
+                for grupo in grupos:
+                    lista_grupo.append(descodificar(grupo, Grupo))
+            except TypeError:
+                lista_grupo = []
             return lista_grupo
         else:
             return None
@@ -367,9 +372,8 @@ def descodificar(dados, classe):
             return None
 
     elif classe == [MensagemPrivada] or classe == [MensagemGrupo]:
-        dados = loads(dados)
-
         if dados:
+            dados = loads(dados)
             lista_mensagens = []
             for mensagen in dados:
                 lista_mensagens.append(descodificar(mensagen, Pedido))
@@ -379,8 +383,3 @@ def descodificar(dados, classe):
 
     else:
         return None
-
-
-# TODO delete debug function
-def debug_obj_check(obj):
-    print(obj, type(obj))

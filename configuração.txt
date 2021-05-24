@@ -1,0 +1,1 @@
+Antes de iniciar, verifique as constantes no modulo constantes.py

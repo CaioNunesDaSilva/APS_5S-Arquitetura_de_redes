@@ -22,7 +22,9 @@ def aceitar_conexao():
 def controlador_cliente(conexao, endereco):
     global CLIENTES
     global GRUPOS
-    global RECEBER_MENSAGENS
+    global CONEXOES
+    global RECEBER_MENSAGENS_PRIVADAS
+    global RECEBER_MENSAGENS_GRUPOS
 
     while True:
         try:
@@ -33,9 +35,16 @@ def controlador_cliente(conexao, endereco):
                 if pedido.tipo == TipoPedido.CADASTRO_USUARIO:
                     print(f"PEDIDO DE CADASTRO DE: {pedido.nome} NA A CONEXAO {conexao}")
 
-                    conexao.send(codificar(cadastrar_usuario(pedido.nome, pedido.senha)))
-                    conexao.close()
-                    break
+                    try:
+                        conexao.send(codificar(cadastrar_usuario(pedido.nome, pedido.senha)))
+
+                    except MySQL.IntegrityError:
+                        print("OCORREU UM ERRO DE INTERGRIDADE NO BANCO DE DADOS")
+                        conexao.send(codificar(False))
+
+                    finally:
+                        conexao.close()
+                        break
 
                 elif pedido.tipo == TipoPedido.LOGIN:
                     print(f"PEDIDO DE LOGIN DE: {pedido.nome} NA A CONEXAO {conexao}")
@@ -45,15 +54,17 @@ def controlador_cliente(conexao, endereco):
                     if cliente:
                         CLIENTES.append(cliente)
                         CONEXOES.append(conexao)
-                        RECEBER_MENSAGENS.append([False, False])
+                        RECEBER_MENSAGENS_PRIVADAS.append(False)
+                        RECEBER_MENSAGENS_GRUPOS.append(False)
                         conexao.send(codificar(Usuario.clonar(cliente)))
 
-                    conexao.send(codificar(cliente))
+                    else:
+                        conexao.send(codificar(cliente))
 
                 elif pedido.tipo == TipoPedido.ATUALIZAR_LISTA_CLIENTES:
                     print(f"PEDIDO DA LISTA DE USUARIOS PARA {pedido.remetente.nome} NA A CONEXAO {conexao}")
 
-                    RECEBER_MENSAGENS[CONEXOES.index(conexao)][0] = False
+                    RECEBER_MENSAGENS_PRIVADAS[CONEXOES.index(conexao)] = False
 
                     lista_usuarios = []
                     for cliente in CLIENTES:
@@ -65,7 +76,7 @@ def controlador_cliente(conexao, endereco):
                 elif pedido.tipo == TipoPedido.ATUALIZAR_LISTA_GRUPOS:
                     print(f"PEDIDO DA LISTA DE GRUPOS PARA: {pedido.remetente.nome} NA A CONEXAO {conexao}")
 
-                    RECEBER_MENSAGENS[CONEXOES.index(conexao)][1] = False
+                    RECEBER_MENSAGENS_GRUPOS[CONEXOES.index(conexao)] = False
 
                     lista_grupos = []
                     for grupo in GRUPOS:
@@ -80,11 +91,13 @@ def controlador_cliente(conexao, endereco):
 
                     for indice, cliente in enumerate(CLIENTES):
                         if pedido.destinatario == cliente.nome:
-                            if RECEBER_MENSAGENS[indice][0]:
+                            if RECEBER_MENSAGENS_PRIVADAS[indice]:
                                 pedido = codificar(pedido)
                                 CONEXOES[indice].send(pedido)
                                 conexao.send(pedido)
                             else:
+                                print(f"MENSAGENS ARQUIVADA PARA DE {pedido.remetente} PARA {pedido.destinatario}"
+                                      f" NA CONEXAO {conexao}")
                                 conexao.send(codificar(MensagemPrivada(Usuario(0, "Servidor"),
                                                                        "Usuario não esta disponivel",
                                                                        pedido.remetente.nome)))
@@ -93,7 +106,9 @@ def controlador_cliente(conexao, endereco):
                             break
 
                     else:
-                        arquivar_mensagens_privadas(pedido)
+                        conexao.send(codificar(MensagemPrivada(Usuario(0, "Servidor"),
+                                                               "Usuario se desconectou",
+                                                               pedido.remetente.nome)))
 
                 elif pedido.tipo == TipoPedido.MENSSAGEM_GRUPO:
                     print(f"MENSAGENS DE {pedido.remetente.nome} NO GRUPO {pedido.grupo} NA CONEXAO {conexao}")
@@ -102,12 +117,14 @@ def controlador_cliente(conexao, endereco):
                     for grupo in GRUPOS:
                         if grupo.nome == pedido.grupo:
                             for cliente in grupo.membros:
-                                if cliente in CLIENTES and RECEBER_MENSAGENS[CLIENTES.index(cliente)][1]:
+                                if cliente in CLIENTES and RECEBER_MENSAGENS_GRUPOS[CLIENTES.index(cliente)]:
                                     CONEXOES[CLIENTES.index(cliente)].send(codificar(MensagemGrupo.clonar(pedido)))
                                 else:
                                     usuarios_nao_disponiveis.append(cliente)
 
                             if usuarios_nao_disponiveis:
+                                print(f"MENSAGENS ARQUIVADA PARA ALGUNS USUARIOS NO GRUPO {pedido.grupo}"
+                                      f" MA CONEXAO {conexao}")
                                 arquivar_mensagens_grupo(pedido, usuarios_nao_disponiveis)
 
                             break
@@ -124,7 +141,9 @@ def controlador_cliente(conexao, endereco):
                     for indice, cliente in enumerate(CLIENTES):
                         if pedido.remetente == cliente:
                             CLIENTES.pop(indice)
-                            RECEBER_MENSAGENS.pop(indice)
+                            CONEXOES.pop(indice)
+                            RECEBER_MENSAGENS_PRIVADAS.pop(indice)
+                            RECEBER_MENSAGENS_GRUPOS.pop(indice)
 
                     conexao.close()
                     break
@@ -133,7 +152,7 @@ def controlador_cliente(conexao, endereco):
                     print(f"PEDIDO DE ENVIO DE MENSAGENS PRIVADAS ARQUIVADAS"
                           f" POR {pedido.remetente.nome} NA CONEXAO {conexao}")
 
-                    RECEBER_MENSAGENS[CONEXOES.index(conexao)][0] = True
+                    RECEBER_MENSAGENS_PRIVADAS[CONEXOES.index(conexao)] = True
 
                     conexao.send(codificar(mensagens_privadas_arquivadas(pedido.chat, pedido.remetente.nome)))
 
@@ -141,7 +160,7 @@ def controlador_cliente(conexao, endereco):
                     print(f"PEDIDO DE ENVIO DE MENSAGENS DE GRUPO ARQUIVADAS"
                           f" POR {pedido.remetente.nome} NA CONEXAO {conexao}")
 
-                    RECEBER_MENSAGENS[CONEXOES.index(conexao)][1] = True
+                    RECEBER_MENSAGENS_GRUPOS[CONEXOES.index(conexao)] = True
 
                     conexao.send(codificar(mensagens_grupo_arquivadas(pedido.grupo, pedido.remetente.nome)))
 
@@ -152,7 +171,9 @@ def controlador_cliente(conexao, endereco):
             print(f"CONEXAO {conexao} ABORTADA DEVIDO A FALTA DE RESPOSTA")
             try:
                 CLIENTES.pop(CONEXOES.index(conexao))
-                RECEBER_MENSAGENS.pop(CONEXOES.index(conexao))
+                CONEXOES.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS_PRIVADAS.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS_GRUPOS.pop(CONEXOES.index(conexao))
             except ValueError:
                 pass
             conexao.close()
@@ -162,7 +183,21 @@ def controlador_cliente(conexao, endereco):
             print(f"CONEXAO {conexao} FOI FECHADA ABRUPTAMENTE")
             try:
                 CLIENTES.pop(CONEXOES.index(conexao))
-                RECEBER_MENSAGENS.pop(CONEXOES.index(conexao))
+                CONEXOES.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS_PRIVADAS.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS_GRUPOS.pop(CONEXOES.index(conexao))
+            except ValueError:
+                pass
+            conexao.close()
+            break
+
+        except OSError:
+            print(f"ERRO DE CONEXAO NO SOQUETE NA CONEXAO {conexao}")
+            try:
+                CLIENTES.pop(CONEXOES.index(conexao))
+                CONEXOES.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS_PRIVADAS.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS_GRUPOS.pop(CONEXOES.index(conexao))
             except ValueError:
                 pass
             conexao.close()
@@ -172,7 +207,9 @@ def controlador_cliente(conexao, endereco):
             print(f"DADOS INVALIDOS RECEBIDOS NA CONEXAO {conexao}")
             try:
                 CLIENTES.pop(CONEXOES.index(conexao))
-                RECEBER_MENSAGENS.pop(CONEXOES.index(conexao))
+                CONEXOES.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS_PRIVADAS.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS_GRUPOS.pop(CONEXOES.index(conexao))
             except ValueError:
                 pass
             conexao.close()
@@ -182,7 +219,9 @@ def controlador_cliente(conexao, endereco):
             print(f"DADOS EM FORMATO INVALIDO ENCONTRADOS NA CONEXAO {conexao}")
             try:
                 CLIENTES.pop(CONEXOES.index(conexao))
-                RECEBER_MENSAGENS.pop(CONEXOES.index(conexao))
+                CONEXOES.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS_PRIVADAS.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS_GRUPOS.pop(CONEXOES.index(conexao))
             except ValueError:
                 pass
             try:
@@ -191,27 +230,61 @@ def controlador_cliente(conexao, endereco):
                 pass
             break
 
-        # except:
-        # TODO tratamento de erro do banco de dados
+        except (MySQL.ProgrammingError, MySQL.IntegrityError, MySQL.DatabaseError):
+            print(f"TABELA DO BANCO DE DADOS EM FORMATO DIFERENTE DO ESPERADO")
+            try:
+                CLIENTES.pop(CONEXOES.index(conexao))
+                CONEXOES.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS_PRIVADAS.pop(CONEXOES.index(conexao))
+                RECEBER_MENSAGENS_GRUPOS.pop(CONEXOES.index(conexao))
+            except ValueError:
+                pass
+            try:
+                conexao.close()
+            except AttributeError:
+                pass
+            break
 
 
 if __name__ == "__main__":
-    CLIENTES = []
-    CONEXOES = []
-    RECEBER_MENSAGENS = []
-    GRUPOS = carregar_grupos()
+    try:
+        CLIENTES = []
+        CONEXOES = []
+        RECEBER_MENSAGENS_PRIVADAS = []
+        RECEBER_MENSAGENS_GRUPOS = []
+        GRUPOS = carregar_grupos()
 
-    soquete = socket(AF_INET, SOCK_STREAM)
-    soquete.bind((SOCKET_ENDERECO, SOCKET_PORTA))
-    soquete.listen()
+        soquete = socket(AF_INET, SOCK_STREAM)
+        soquete.bind((SOCKET_ENDERECO, SOCKET_PORTA))
+        soquete.listen()
 
-    thread_aceitar_conexao = Thread(target=aceitar_conexao)
-    thread_aceitar_conexao.start()
-    print("SERVIDOR AGUARDANDO CONEXOES...")
+        thread_aceitar_conexao = Thread(target=aceitar_conexao)
+        thread_aceitar_conexao.start()
+        print("SERVIDOR AGUARDANDO CONEXOES...")
 
+    except MySQL.InterfaceError:
+        print("NAO FOI POSSIVEL SE CONECTAR AO BANCO DE DADOS")
+        try:
+            soquete.close()
+        except NameError:
+            pass
+        exit()
 
-    # except:
-    # TODO tratamento de erro do banco de dados
+    except MySQL.ProgrammingError:
+        print("BANCO DE DADOS FORA DOS PADROES")
+        try:
+            soquete.close()
+        except NameError:
+            pass
+        exit()
+
+    except Exception as erro:
+        print(f"OCORREU O ERRO {erro}, REINICIE O SERVIDOR")
+        try:
+            soquete.close()
+        except NameError:
+            pass
+        exit()
 
     try:
         while True:
@@ -243,6 +316,13 @@ if __name__ == "__main__":
 
     except OSError:
         print("OCORREU UM ERRO NO SOQUETE")
+        try:
+            soquete.close()
+        except AttributeError:
+            pass
+
+    except Exception as erro:
+        print(f"OCORREU O ERRO {erro}, REINICIE O SERVIDOR")
         try:
             soquete.close()
         except AttributeError:

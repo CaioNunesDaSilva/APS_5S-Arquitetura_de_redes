@@ -5,6 +5,7 @@ from tkinter.messagebox import showinfo, showerror
 from socket import socket, AF_INET, SOCK_STREAM
 from threading import Thread
 from json.decoder import JSONDecodeError
+from time import sleep
 
 from auxiliar import *
 from constantes import *
@@ -199,20 +200,16 @@ class Cadastro(Interface):
                 else:
                     showerror(title="ERRO", message="Usuario ja cadastrado")
 
-            except ConnectionRefusedError as erro:
-                print(erro)
+            except ConnectionRefusedError:
                 _conexao_recusada()
 
-            except ConnectionAbortedError as erro:
-                print(erro)
+            except ConnectionAbortedError:
                 _conexao_abortada()
 
-            except ConnectionResetError as erro:
-                print(erro)
+            except ConnectionResetError:
                 _conexao_resetada()
 
-            except JSONDecodeError as erro:
-                print(erro)
+            except JSONDecodeError:
                 _dados_recebidos_invalidos()
 
             finally:
@@ -327,7 +324,6 @@ class MenuUsuarios(Interface):
     def __atualizar_usuarios_online(self):
         try:
             self.soquete.send(codificar(PedidoAtualizarListaClientes(self.dados_cliente)))
-
             dados_recebidos = self.soquete.recv(BUFFER)
             return descodificar(dados_recebidos, [Usuario])
 
@@ -433,7 +429,7 @@ class MenuGrupos(Interface):
 
         self.frame_header.pack()
 
-        self.__carregar_botoes_grupo()
+        self.__carregar_botoes_grupos()
 
         self.frame_botoes = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
         self.frame_botoes.pack(fill=BOTH, expand=True)
@@ -475,7 +471,7 @@ class MenuGrupos(Interface):
             except AttributeError:
                 exit()
 
-    def __carregar_botoes_grupo(self):
+    def __carregar_botoes_grupos(self):
         self.frame_botoes_grupos = Frame(self.main_frame, bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
 
         for grupo in self.grupos_participante:
@@ -494,7 +490,7 @@ class MenuGrupos(Interface):
 
         self.frame_botoes_grupos.destroy()
 
-        self.__carregar_botoes_grupo()
+        self.__carregar_botoes_grupos()
 
         self.label_info["text"] = f"{len(self.grupos_participante)} grupos"
 
@@ -623,6 +619,10 @@ class ChatUsuario(Interface):
             except AttributeError:
                 exit()
 
+        self.btn_send.config(state=DISABLED)
+        sleep(1)
+        self.btn_send.config(state=NORMAL)
+
     def __receber_mensagens(self):
         while True:
             try:
@@ -725,7 +725,8 @@ class ChatGrupo(Interface):
         try:
             self.soquete.send(codificar(PedidoMensagensGrupoArquivadas(self.dados_cliente, self.grupo)))
 
-            mensagens_arquivadas = descodificar(self.soquete.recv(BUFFER), [MensagemGrupo])
+            mensagens_arquivadas = self.soquete.recv(BUFFER)
+            mensagens_arquivadas = descodificar(mensagens_arquivadas, [MensagemGrupo])
 
             if mensagens_arquivadas:
                 for mensagem in mensagens_arquivadas:
@@ -790,6 +791,10 @@ class ChatGrupo(Interface):
                 Login(self._tk)
             except AttributeError:
                 exit()
+
+        self.btn_send.config(state=DISABLED)
+        sleep(1)
+        self.btn_send.config(state=NORMAL)
 
     def __receber_mensagens(self):
         while True:
@@ -887,7 +892,8 @@ class CadastroGrupo(Interface):
         self.entry_members.grid(row=3, column=0, sticky=W+N)
 
         self.label_info = Label(self.main_frame,
-                                text="digite o nome dos integrantes, sem espaco, separados por virgula",
+                                text="digite o nome do grupo e dos integrantes, sem espaco e pontos,"
+                                     "sendo o nome dos integrantes, separados por virgula",
                                 bg=COR_DE_FUNDO_PADRAO, padx=5, pady=5)
         self.label_info.pack()
 
@@ -909,48 +915,60 @@ class CadastroGrupo(Interface):
 
     def __acao_btn_nw_group(self):
         nome = str(self.entry_name.get()).strip()
-        integrantes = str(self.entry_members.get()).strip().split(",")
-        try:
-            self.soquete.send(codificar(PedidoCadastroGrupo(self.dados_cliente, nome, integrantes)))
+        if "," not in nome and "." not in nome:
+            integrantes = str(self.entry_members.get()).strip().split(",")
+            if self.dados_cliente.nome not in integrantes:
+                try:
+                    self.soquete.send(codificar(PedidoCadastroGrupo(self.dados_cliente, nome, integrantes)))
 
-            resultado = descodificar(self.soquete.recv(BUFFER), bool)
+                    resultado = descodificar(self.soquete.recv(BUFFER), bool)
 
-            if resultado:
-                showinfo(title="AVISO", message="Grupo cadastrado com sucesso")
+                    if resultado:
+                        showinfo(title="AVISO", message="Grupo cadastrado com sucesso")
+                    else:
+                        showerror(title="ERRO",
+                                  message="Não foi possivel cadastrar o grupo, o nome pode ja ter sido utilizado "
+                                          "ou um dos integrantes nao esta cadastrado, verifique os integrantes")
+
+                    self.__limpar_campos()
+
+                except ConnectionResetError as erro:
+                    print(erro)
+                    _conexao_resetada()
+                    self.soquete.close()
+                    try:
+                        self.main_frame.destroy()
+                        Login(self._tk)
+                    except AttributeError:
+                        exit()
+
+                except ConnectionAbortedError as erro:
+                    print(erro)
+                    _conexao_abortada()
+                    self.soquete.close()
+                    try:
+                        self.main_frame.destroy()
+                        Login(self._tk)
+                    except AttributeError:
+                        exit()
+
+                except JSONDecodeError as erro:
+                    print(erro)
+                    _dados_recebidos_invalidos()
+                    self.soquete.close()
+                    try:
+                        self.main_frame.destroy()
+                        Login(self._tk)
+                    except AttributeError:
+                        exit()
+
             else:
-                showerror(title="ERRO", message="Grupo ja cadastrado")
+                showerror(title="INTEGRANTES", message="não digite seu proprio nome nos integrantes")
+                self.__limpar_campos()
 
+        else:
+            showerror(title="PONTUACAO", message="o nome do grupo nao pode conter virgulas ou pontos")
             self.__limpar_campos()
-
-        except ConnectionResetError as erro:
-            print(erro)
-            _conexao_resetada()
-            self.soquete.close()
-            try:
-                self.main_frame.destroy()
-                Login(self._tk)
-            except AttributeError:
-                exit()
-
-        except ConnectionAbortedError as erro:
-            print(erro)
-            _conexao_abortada()
-            self.soquete.close()
-            try:
-                self.main_frame.destroy()
-                Login(self._tk)
-            except AttributeError:
-                exit()
-
-        except JSONDecodeError as erro:
-            print(erro)
-            _dados_recebidos_invalidos()
-            self.soquete.close()
-            try:
-                self.main_frame.destroy()
-                Login(self._tk)
-            except AttributeError:
-                exit()
 
     def __acao_btn_back(self):
         self.main_frame.destroy()
